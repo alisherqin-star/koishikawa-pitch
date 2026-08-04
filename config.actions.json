@@ -1,0 +1,39 @@
+{
+  "_comment": "GitHub Actions 用。webhook は KOISHIKAWA_WEBHOOK_URL secret から入る（ここには書かない）",
+  "facility": {
+    "categoryCode": 4,
+    "code": 44,
+    "name": "小石川運動場",
+    "objects": [
+      "グラウンド"
+    ]
+  },
+  "monthsAhead": 4,
+  "notifyOn": {
+    "weekdays": [
+      0,
+      6
+    ],
+    "timeFrom": null,
+    "timeTo": null,
+    "includeLottery": true
+  },
+  "intervalMinutes": 30,
+  "quietHours": [
+    23,
+    7
+  ],
+  "notify": {
+    "macos": false,
+    "sound": false,
+    "onLotteryCountChange": false,
+    "webhookUrl": ""
+  },
+  "reportPath": null,
+  "statePath": "actions-state.json",
+  "logPath": "watch.log",
+  "publish": {
+    "path": "docs/index.html",
+    "git": false
+  }
+}

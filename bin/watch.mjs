@@ -38,7 +38,7 @@ const value = (name) => {
   return i >= 0 ? argv[i + 1] : undefined;
 };
 
-const config = JSON.parse(await readFile(resolve(root, 'config.json'), 'utf8'));
+const config = JSON.parse(await readFile(resolve(root, value('config') ?? 'config.json'), 'utf8'));
 const interval = Number(value('interval'));
 if (Number.isFinite(interval) && interval > 0) config.intervalMinutes = interval;
 const statePath = resolve(root, config.statePath ?? 'state.json');

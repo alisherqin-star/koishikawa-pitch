@@ -35,14 +35,19 @@ jobs:
       - name: 通知判定のテスト
         run: node --test 'test/*.test.mjs'
 
-      - name: 空き状況を取得してページを作る
-        run: node bin/build-page.mjs
+      # watch --once は取得→前回状態との差分→Discord通知→ページ書き出しまで行う。
+      # 状態は actions-state.json としてリポジトリに残すので、次の実行が差分を取れる。
+      # 静音時間帯（23-7 JST）のイベントも state 内の保留リスト経由で朝に通知される。
+      - name: 空き状況を取得して通知・ページ更新
+        env:
+          KOISHIKAWA_WEBHOOK_URL: ${{ secrets.KOISHIKAWA_WEBHOOK_URL }}
+        run: node bin/watch.mjs --once --config config.actions.json
 
       - name: 変更があれば commit して push
         run: |
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/index.html docs/.nojekyll
+          git add docs/index.html docs/.nojekyll actions-state.json
           if git diff --cached --quiet; then
             echo '内容に変更なし'
             exit 0

@@ -207,14 +207,23 @@ GitHub に自動で止められる**。このワークフロー自身が commit 
 
 ### グループチャットに流す
 
-Discord なら「サーバー設定 → 連携サービス → ウェブフック」、Slack なら
-「api.slack.com/apps → Incoming Webhooks」で URL を作り、`config.json` の
-`notify.webhookUrl` に入れる。疎通確認:
+Discord への通知は **GitHub Actions が送る**（Mac の電源と無関係に届く）。
+webhook URL はリポジトリの Secret に置く:
 
-```bash
-node bin/test-notify.mjs
-```
+1. Discord で webhook URL を作る（サーバー設定 → 連携サービス → ウェブフック）
+2. GitHub リポジトリの Settings → Secrets and variables → Actions →
+   New repository secret。名前 `KOISHIKAWA_WEBHOOK_URL`、値に URL を貼る
 
-実際の空き状況とは無関係のテストメッセージが飛ぶ。**この URL は認証情報**（知っていれば
-誰でもそのチャンネルに投稿できる）なので公開リポジトリに置かないこと。
-`config.json` は追跡対象外にしてあり、環境変数 `KOISHIKAWA_WEBHOOK_URL` でも渡せる。
+Secret を置くまでは通知だけが黙ってスキップされ、ページ更新は動き続ける。
+Actions 用の差分状態は `actions-state.json` としてリポジトリに残る。
+ローカルの `config.json` に同じ webhook を書くと**同じ空きが2回通知される**ので
+書かないこと（ローカルは macOS 通知センター担当）。
+
+通知の分担:
+
+| 経路 | 担当 | 反応速度 | 動く条件 |
+| --- | --- | --- | --- |
+| launchd（ローカル） | macOS 通知センター | 最短5分 | Mac が起きている間 |
+| GitHub Actions | Discord | 最短30分 | 常時（Mac 不要） |
+
+疎通確認はローカルから `KOISHIKAWA_WEBHOOK_URL='…' node bin/test-notify.mjs`。
