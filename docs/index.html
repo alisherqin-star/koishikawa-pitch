@@ -4,148 +4,166 @@
 
 <title>小石川運動場 空き状況</title>
 <style>
+  /* 小石川運動場の芝から採った緑を軸に、抽選は夜間照明の琥珀。
+     ダークテーマはナイター（夜の試合）の配色。中性色はすべて緑側に寄せる。 */
   :root {
-    --ground:#f6f7f9; --surface:#ffffff; --ink:#171a21; --muted:#6b7280; --hair:#e2e6ec;
-    --indigo:#22406e; --ok:#0e7a45; --ok-fill:#d6efe0; --lot:#8a5c00; --lot-fill:#f8ecce;
-    --taken:#ced3db; --dormant:#e9ecf1; --rest:#f0f3f8;
+    --ground:#f2f5f2; --surface:#ffffff; --ink:#1b231d; --muted:#647268; --hair:#dfe6e0;
+    --pitch:#1e6b3e; --ok:#0d7a41; --ok-fill:#d8efe0; --lot:#8a5c00; --lot-fill:#f6ecc9;
+    --taken:#d3d9d3; --dormant:#e8ede8; --rest:#ecf1ec; --sat:#2f6fbf; --sun:#c94f4f;
     --sans:"Hiragino Sans","Noto Sans JP",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --ground:#111319; --surface:#181b23; --ink:#e6eaf0; --muted:#8b93a1; --hair:#272c36;
-      --indigo:#8aabdd; --ok:#4ec081; --ok-fill:#123724; --lot:#d9a63f; --lot-fill:#3a2e12;
-      --taken:#333944; --dormant:#20242c; --rest:#1c202a;
+      --ground:#0e1310; --surface:#151b16; --ink:#e5ece6; --muted:#8fa093; --hair:#242f26;
+      --pitch:#4cc07d; --ok:#57c684; --ok-fill:#123720; --lot:#d9aa4d; --lot-fill:#362c12;
+      --taken:#2b332c; --dormant:#1b221c; --rest:#171e18; --sat:#6ea8e8; --sun:#e07070;
     }
   }
   :root[data-theme="dark"] {
-    --ground:#111319; --surface:#181b23; --ink:#e6eaf0; --muted:#8b93a1; --hair:#272c36;
-    --indigo:#8aabdd; --ok:#4ec081; --ok-fill:#123724; --lot:#d9a63f; --lot-fill:#3a2e12;
-    --taken:#333944; --dormant:#20242c; --rest:#1c202a;
+    --ground:#0e1310; --surface:#151b16; --ink:#e5ece6; --muted:#8fa093; --hair:#242f26;
+    --pitch:#4cc07d; --ok:#57c684; --ok-fill:#123720; --lot:#d9aa4d; --lot-fill:#362c12;
+    --taken:#2b332c; --dormant:#1b221c; --rest:#171e18; --sat:#6ea8e8; --sun:#e07070;
   }
   :root[data-theme="light"] {
-    --ground:#f6f7f9; --surface:#ffffff; --ink:#171a21; --muted:#6b7280; --hair:#e2e6ec;
-    --indigo:#22406e; --ok:#0e7a45; --ok-fill:#d6efe0; --lot:#8a5c00; --lot-fill:#f8ecce;
-    --taken:#ced3db; --dormant:#e9ecf1; --rest:#f0f3f8;
+    --ground:#f2f5f2; --surface:#ffffff; --ink:#1b231d; --muted:#647268; --hair:#dfe6e0;
+    --pitch:#1e6b3e; --ok:#0d7a41; --ok-fill:#d8efe0; --lot:#8a5c00; --lot-fill:#f6ecc9;
+    --taken:#d3d9d3; --dormant:#e8ede8; --rest:#ecf1ec; --sat:#2f6fbf; --sun:#c94f4f;
   }
 
   * { box-sizing:border-box; }
-  body { margin:0; padding:32px 24px 64px; background:var(--ground); color:var(--ink);
+  body { margin:0; padding:32px 20px 64px; background:var(--ground); color:var(--ink);
          font-family:var(--sans); font-size:14px; line-height:1.55;
          -webkit-font-smoothing:antialiased; }
-  .page { max-width:960px; margin:0 auto; display:flex; flex-direction:column; gap:28px; }
+  .page { max-width:920px; margin:0 auto; display:flex; flex-direction:column; gap:26px; }
 
-  header { display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end;
-           justify-content:space-between; border-bottom:2px solid var(--indigo); padding-bottom:14px; }
-  h1 { margin:0; font-size:26px; font-weight:700; letter-spacing:-0.02em; text-wrap:balance; }
-  h1 small { display:block; font-size:13px; font-weight:500; color:var(--muted); letter-spacing:0; margin-top:3px; }
-  .stamp { font-family:var(--mono); font-size:12px; color:var(--muted); text-align:right;
-           font-variant-numeric:tabular-nums; }
+  header { display:flex; flex-wrap:wrap; gap:12px 16px; align-items:flex-end;
+           justify-content:space-between; border-bottom:3px solid var(--pitch); padding-bottom:16px; }
+  .title { display:flex; align-items:flex-start; gap:14px; }
+  .pitchmark { margin-top:5px; }
+  .pitchmark { width:36px; height:25px; flex:none; }
+  .pitchmark rect, .pitchmark line, .pitchmark circle { fill:none; stroke:var(--pitch); stroke-width:1.6; }
+  h1 { margin:0; font-size:24px; font-weight:700; letter-spacing:-0.02em; text-wrap:balance; }
+  h1 small { display:block; font-size:12px; font-weight:500; color:var(--muted);
+             letter-spacing:0; margin-top:3px; max-width:52ch; }
+  .stamp { font-family:var(--mono); font-size:11px; color:var(--muted); text-align:right;
+           font-variant-numeric:tabular-nums; line-height:1.7; }
   .stamp .live { color:var(--ok); font-weight:600; }
 
   .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
-  .stat { background:var(--surface); border:1px solid var(--hair); border-radius:6px;
-          padding:14px 16px; display:flex; flex-direction:column; gap:2px; }
-  .stat b { font-family:var(--mono); font-size:30px; font-weight:700; line-height:1;
-            font-variant-numeric:tabular-nums; }
-  .stat span { font-size:12px; color:var(--muted); }
-  .stat.s-ok b { color:var(--ok); }
-  .stat.s-ok { border-left:3px solid var(--ok); }
+  .stat { background:var(--surface); border:1px solid var(--hair); border-radius:8px;
+          padding:14px 16px 12px; display:flex; flex-direction:column; gap:3px; }
+  .stat b { font-family:var(--mono); font-size:32px; font-weight:700; line-height:1.05;
+            font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
+  .stat span { font-size:11px; color:var(--muted); letter-spacing:.05em; }
+  .stat.s-ok  { box-shadow:inset 3px 0 0 var(--ok); }
+  .stat.s-ok b  { color:var(--ok); }
+  .stat.s-lot { box-shadow:inset 3px 0 0 var(--lot); }
   .stat.s-lot b { color:var(--lot); }
-  .stat.s-lot { border-left:3px solid var(--lot); }
   .stat.s-dorm b { color:var(--muted); }
 
-  /* 月ごとの要約。満杯の月は表から折り畳まれて消えるので、
-     「取れていない」のか「取れる枠が無い」のかをここで示す。 */
   .months { display:flex; flex-wrap:wrap; gap:8px; }
-  .month { display:flex; align-items:baseline; gap:8px; padding:6px 12px; border-radius:4px;
+  .month { display:flex; align-items:baseline; gap:8px; padding:6px 12px; border-radius:6px;
            background:var(--surface); border:1px solid var(--hair); font-size:12px; }
   .month b { font-family:var(--mono); font-size:13px; }
   .month span { color:var(--muted); }
-  .month.hot { border-color:var(--ok); }
-  .month.hot span { color:var(--ok); font-weight:600; }
+  .month.hot  { border-color:var(--ok); }
+  .month.hot span  { color:var(--ok); font-weight:600; }
   .month.warm { border-color:var(--lot); }
   .month.warm span { color:var(--lot); font-weight:600; }
 
   .picks { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
+  .pick { background:var(--surface); border:1px solid var(--hair); border-radius:8px; padding:14px 16px; }
   .pick h2 { margin:0 0 8px; font-size:11px; font-weight:700; letter-spacing:.09em;
              text-transform:uppercase; color:var(--muted); }
-  .pick ul { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:1px; }
+  .pick ul { margin:0; padding:0; list-style:none; }
   .pick li { font-family:var(--mono); font-size:13px; font-variant-numeric:tabular-nums;
-             padding:3px 0; border-bottom:1px solid var(--hair); }
+             padding:4px 0; border-bottom:1px solid var(--hair); }
+  .pick li:last-child { border-bottom:0; }
   .pick li b { font-weight:700; }
   .pick li i { font-style:normal; color:var(--muted); margin:0 8px 0 6px; font-family:var(--sans); }
   .pick li em { font-style:normal; color:var(--muted); margin-left:8px; font-family:var(--sans); font-size:12px; }
-  .pick .none { color:var(--muted); font-size:13px; }
+  .pick .none { color:var(--muted); font-size:13px; margin:0; }
   .pick.p-ok li b { color:var(--ok); }
 
-  .filters { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .filters button { font:inherit; font-size:12px; padding:5px 12px; border-radius:999px;
+  .filters { display:flex; gap:8px; flex-wrap:wrap; }
+  .filters button { font:inherit; font-size:12px; padding:6px 14px; border-radius:999px;
                     border:1px solid var(--hair); background:var(--surface); color:var(--muted);
                     cursor:pointer; }
-  .filters button:hover { border-color:var(--indigo); color:var(--ink); }
-  .filters button[aria-pressed="true"] { background:var(--indigo); border-color:var(--indigo);
+  .filters button:hover { border-color:var(--pitch); color:var(--ink); }
+  .filters button[aria-pressed="true"] { background:var(--pitch); border-color:var(--pitch);
                                          color:var(--surface); font-weight:600; }
-  .filters button:focus-visible { outline:2px solid var(--indigo); outline-offset:2px; }
+  .filters button:focus-visible { outline:2px solid var(--pitch); outline-offset:2px; }
 
-  .board { background:var(--surface); border:1px solid var(--hair); border-radius:6px;
+  .board { background:var(--surface); border:1px solid var(--hair); border-radius:8px;
            overflow-x:auto; }
-  .inner { min-width:600px; }
-  .ruler { display:grid; grid-template-columns:88px 1fr; position:sticky; top:0; z-index:2;
+  .inner { min-width:640px; }
+  .ruler { display:grid; grid-template-columns:110px 1fr; position:sticky; top:0; z-index:3;
            background:var(--surface); border-bottom:1px solid var(--hair); }
   .ruler .ticks { display:grid; grid-template-columns:repeat(7,1fr); }
   .ruler .ticks span { font-family:var(--mono); font-size:11px; color:var(--muted);
-                       padding:8px 0 7px; text-align:center; border-left:1px solid var(--hair);
+                       padding:9px 0 8px; text-align:center; border-left:1px solid var(--hair);
                        font-variant-numeric:tabular-nums; }
-  .ruler .corner { padding:8px 12px; font-size:11px; color:var(--muted); letter-spacing:.06em; }
+  .ruler .corner { padding:9px 12px; font-size:10px; color:var(--muted); letter-spacing:.08em; }
 
-  .row { display:grid; grid-template-columns:88px 1fr; border-bottom:1px solid var(--hair); }
+  .msep { padding:12px 12px 5px; font-size:11px; font-weight:700; color:var(--muted);
+          letter-spacing:.08em; border-bottom:1px solid var(--hair); }
+  .row { display:grid; grid-template-columns:110px 1fr; border-bottom:1px solid var(--hair);
+         background:var(--surface); }
   .row:last-child { border-bottom:0; }
   .row.rest { background:var(--rest); }
-  .date { font-family:var(--mono); font-size:12px; padding:0 10px; display:flex; align-items:center;
-          gap:5px; font-variant-numeric:tabular-nums; }
+  .row.folded { background:var(--ground); }
+  .date { position:sticky; left:0; z-index:1; background:inherit;
+          font-family:var(--mono); font-size:12px; padding:0 10px; display:flex;
+          align-items:center; gap:6px; font-variant-numeric:tabular-nums; }
   .date i { font-style:normal; font-family:var(--sans); color:var(--muted); }
-  .date u { text-decoration:none; font-family:var(--sans); font-size:10px; color:var(--lot); }
-  .row.sat .date i { color:#3b82f6; }
-  .row.sun .date i, .row.sun .date u { color:#e05252; }
+  .date u { text-decoration:none; font-family:var(--sans); font-size:10px; color:var(--sun); }
+  .date em { font-style:normal; font-family:var(--sans); font-size:9px; font-weight:700; white-space:nowrap;
+             color:var(--pitch); border:1px solid var(--pitch); border-radius:3px;
+             padding:0 3px; letter-spacing:.05em; }
+  .row.sat .date i { color:var(--sat); }
+  .row.sun .date i { color:var(--sun); }
+  .row.today { box-shadow:inset 3px 0 0 var(--pitch); }
+  .row.today .date b { color:var(--pitch); }
 
-  .strip { display:grid; grid-template-columns:repeat(7,1fr); gap:1px;
-           padding:3px 3px 3px 0; }
-  .seg { display:flex; align-items:center; justify-content:center; height:26px; border-radius:2px;
+  .strip { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; padding:4px 4px 4px 0; }
+  .seg { height:28px; border-radius:3px; display:flex; align-items:center; justify-content:center;
          font-family:var(--mono); font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; }
   .seg.no { background:var(--taken); }
-  .seg.na { background:transparent; border:1px dashed var(--hair); }
-  /* 空いてはいるが受付前。明度差だけだと「空きなし」と見分けがつかないので
-     斜線で「空だが閉じている」ことを形で示す。 */
+  .seg.na { border:1px dashed var(--hair); }
   .seg.pending { background:repeating-linear-gradient(-45deg,
-                   var(--dormant) 0 3px, transparent 3px 6px);
+                   var(--dormant) 0 4px, transparent 4px 8px);
                  box-shadow:inset 0 0 0 1px var(--dormant); }
-  .seg.ok { background:var(--ok-fill); color:var(--ok); box-shadow:inset 0 0 0 1px var(--ok); }
+  .seg.ok { background:var(--ok-fill); color:var(--ok); box-shadow:inset 0 0 0 1.5px var(--ok); }
   .seg.lot { background:var(--lot-fill); color:var(--lot); }
-  .seg.lot.cold { box-shadow:inset 0 0 0 1px var(--lot); }
+  .seg.lot.cold { box-shadow:inset 0 0 0 1.5px var(--lot); }
+  .fold { display:flex; align-items:center; padding:11px 12px; font-size:12px; color:var(--muted); }
 
-  .row.folded { background:var(--ground); }
-  .fold { display:flex; align-items:center; padding:10px 12px; font-size:12px; color:var(--muted); }
   body.f-rest .row:not(.rest):not(.folded) { display:none; }
   body.f-open .row.shut { display:none; }
+  body.f-rest .msep, body.f-open .msep { display:none; }
 
   footer { display:flex; flex-direction:column; gap:10px; font-size:12px; color:var(--muted); }
   .legend { display:flex; flex-wrap:wrap; gap:6px 18px; align-items:center; }
   .legend span { display:inline-flex; align-items:center; gap:6px; }
-  .key { width:22px; height:13px; border-radius:2px; display:inline-block; }
-  .key.ok { background:var(--ok-fill); box-shadow:inset 0 0 0 1px var(--ok); }
+  .key { width:22px; height:14px; border-radius:3px; display:inline-block; }
+  .key.ok { background:var(--ok-fill); box-shadow:inset 0 0 0 1.5px var(--ok); }
   .key.lot { background:var(--lot-fill); }
   .key.pending { background:repeating-linear-gradient(-45deg,
-                   var(--dormant) 0 3px, transparent 3px 6px);
+                   var(--dormant) 0 4px, transparent 4px 8px);
                  box-shadow:inset 0 0 0 1px var(--dormant); }
   .key.no { background:var(--taken); }
-  footer a { color:var(--indigo); }
+  footer a { color:var(--pitch); }
+  footer p { margin:0; }
   @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
 </style>
 <div class="page">
   <header>
-    <h1>小石川運動場<small>グラウンド ・ 軟式野球・サッカー・ソフトボール・ラクロス・ラグビー・アメリカンフットボール（ラクロス、ラグビー、アメリカンフットボールは練習のみ）</small></h1>
-    <div class="stamp">取得 2026/08/04 23:56 JST<br>2026-08-04 → 2026-12-02</div>
+    <div class="title">
+      <svg class="pitchmark" viewBox="0 0 34 24" aria-hidden="true"><rect x="1.5" y="1.5" width="31" height="21" rx="2.5"/><line x1="17" y1="1.5" x2="17" y2="22.5"/><circle cx="17" cy="12" r="4"/></svg>
+      <h1>小石川運動場<small>グラウンド ・ 軟式野球・サッカー・ソフトボール・ラクロス・ラグビー・アメリカンフットボール（ラクロス、ラグビー、アメリカンフットボールは練習のみ）</small></h1>
+    </div>
+    <div class="stamp">取得 2026/08/05 00:12 JST<br>2026-08-05 → 2026-12-03</div>
   </header>
 
   <section class="stats">
@@ -186,8 +204,7 @@
         <div class="corner">日付</div>
         <div class="ticks"><span>6:30</span><span>8:30</span><span>10:30</span><span>12:30</span><span>14:30</span><span>16:30</span><span>18:30</span></div>
       </div>
-<div class="row shut"><div class="date"><b>08/04</b><i>火</i></div><div class="strip"><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span></div></div>
-<div class="row shut"><div class="date"><b>08/05</b><i>水</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
+<div class="row shut today"><div class="date"><b>08/05</b><i>水</i><em>今日</em></div><div class="strip"><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span><span class="seg na" title="申込期間外"></span></div></div>
 <div class="row shut"><div class="date"><b>08/06</b><i>木</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
 <div class="row shut"><div class="date"><b>08/07</b><i>金</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
 <div class="row rest shut sat"><div class="date"><b>08/08</b><i>土</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
@@ -214,6 +231,7 @@
 <div class="row rest shut sat"><div class="date"><b>08/29</b><i>土</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
 <div class="row rest shut sun"><div class="date"><b>08/30</b><i>日</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
 <div class="row shut"><div class="date"><b>08/31</b><i>月</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
+<div class="msep">9月</div>
 <div class="row shut"><div class="date"><b>09/01</b><i>火</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
 <div class="row shut"><div class="date"><b>09/02</b><i>水</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
 <div class="row shut"><div class="date"><b>09/03</b><i>木</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
@@ -244,6 +262,7 @@
 <div class="row shut"><div class="date"><b>09/28</b><i>月</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
 <div class="row shut"><div class="date"><b>09/29</b><i>火</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
 <div class="row shut"><div class="date"><b>09/30</b><i>水</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
+<div class="msep">10月</div>
 <div class="row open"><div class="date"><b>10/01</b><i>木</i></div><div class="strip"><span class="seg lot cold" title="6:30–8:30 抽選 申込0件">0</span><span class="seg lot" title="8:30–10:30 抽選 申込2件">2</span><span class="seg lot" title="10:30–12:30 抽選 申込4件">4</span><span class="seg lot" title="12:30–14:30 抽選 申込3件">3</span><span class="seg lot" title="14:30–16:30 抽選 申込2件">2</span><span class="seg no" title="16:30–18:30 空きなし"></span><span class="seg no" title="18:30–20:30 空きなし"></span></div></div>
 <div class="row open"><div class="date"><b>10/02</b><i>金</i></div><div class="strip"><span class="seg lot cold" title="6:30–8:30 抽選 申込0件">0</span><span class="seg lot cold" title="8:30–10:30 抽選 申込0件">0</span><span class="seg lot" title="10:30–12:30 抽選 申込1件">1</span><span class="seg lot" title="12:30–14:30 抽選 申込2件">2</span><span class="seg lot" title="14:30–16:30 抽選 申込3件">3</span><span class="seg no" title="16:30–18:30 空きなし"></span><span class="seg no" title="18:30–20:30 空きなし"></span></div></div>
 <div class="row rest shut sat"><div class="date"><b>10/03</b><i>土</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
@@ -275,8 +294,8 @@
 <div class="row open"><div class="date"><b>10/29</b><i>木</i></div><div class="strip"><span class="seg no" title="6:30–8:30 空きなし"></span><span class="seg lot" title="8:30–10:30 抽選 申込1件">1</span><span class="seg lot" title="10:30–12:30 抽選 申込1件">1</span><span class="seg lot cold" title="12:30–14:30 抽選 申込0件">0</span><span class="seg lot cold" title="14:30–16:30 抽選 申込0件">0</span><span class="seg no" title="16:30–18:30 空きなし"></span><span class="seg no" title="18:30–20:30 空きなし"></span></div></div>
 <div class="row open"><div class="date"><b>10/30</b><i>金</i></div><div class="strip"><span class="seg lot cold" title="6:30–8:30 抽選 申込0件">0</span><span class="seg no" title="8:30–10:30 空きなし"></span><span class="seg no" title="10:30–12:30 空きなし"></span><span class="seg no" title="12:30–14:30 空きなし"></span><span class="seg no" title="14:30–16:30 空きなし"></span><span class="seg no" title="16:30–18:30 空きなし"></span><span class="seg no" title="18:30–20:30 空きなし"></span></div></div>
 <div class="row rest shut sat"><div class="date"><b>10/31</b><i>土</i></div><div class="strip"><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span><span class="seg no" title="空きなし"></span></div></div>
-<div class="row folded"><div class="date"><b>11月</b></div><div class="fold">受付開始前 — 30日分 137コマが空いていますが、まだ申込めません。受付が始まると通知します。</div></div>
-<div class="row folded"><div class="date"><b>12月</b></div><div class="fold">申込期間外 — まだ予約・抽選の受付範囲に入っていません。</div></div>
+<div class="row folded"><div class="date"><b>11月</b></div><div class="fold">受付開始前 — 137コマ空き。受付が始まると通知します。</div></div>
+<div class="row folded"><div class="date"><b>12月</b></div><div class="fold">申込期間外 — 受付が始まると通知します。</div></div>
     </div>
   </section>
 
