@@ -145,7 +145,7 @@ async function quickPoll() {
   if (previous === null) return true; // 基準がなければ全件走査へ
   const result = await scan(config, () => {}, {
     detail: false,
-    daysAhead: config.quickDaysAhead ?? config.daysAhead,
+    ...(config.quickDaysAhead ? { daysAhead: config.quickDaysAhead } : {}),
   });
   const hits = changedDays(previous, result, config);
   if (hits.length === 0) return false;

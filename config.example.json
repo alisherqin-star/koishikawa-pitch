@@ -8,7 +8,8 @@
       "グラウンド"
     ]
   },
-  "daysAhead": 120,
+  "monthsAhead": 4,
+  "_monthsAhead": "表示する月数（当月を含む）。月が替わると自動で1ヶ月ずれる",
   "_notifyOn": "weekdays は 0=日 … 6=土。祝日は指定に関わらず常に対象。[] にすると全曜日",
   "notifyOn": {
     "weekdays": [
@@ -22,7 +23,6 @@
   "_interval": "intervalMinutes は全件走査、quickIntervalMinutes は日単位だけ見る軽い巡回",
   "intervalMinutes": 30,
   "quickIntervalMinutes": 5,
-  "quickDaysAhead": 120,
   "quietHours": [
     23,
     7

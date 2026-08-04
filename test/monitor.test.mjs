@@ -331,3 +331,11 @@ test('満杯の月はたたまない（照会済みの証跡として行を残�
   assert.match(html, /08\/05/);
   assert.equal((html.match(/row folded/g) ?? []).length, 0);
 });
+
+test('表示期間は月で数え、月替わりで自動的にずれる', async () => {
+  const { horizonEnd } = await import('../src/scan.mjs');
+  assert.equal(horizonEnd('2026-08-05', { monthsAhead: 4 }), '2026-11-30'); // 8月→11月末
+  assert.equal(horizonEnd('2026-09-01', { monthsAhead: 4 }), '2026-12-31'); // 9月に入ると12月が入る
+  assert.equal(horizonEnd('2026-11-15', { monthsAhead: 4 }), '2027-02-28'); // 年またぎ
+  assert.equal(horizonEnd('2026-08-05', { daysAhead: 30 }), '2026-09-04'); // 従来の日数指定も生きる
+});

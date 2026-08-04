@@ -22,7 +22,10 @@ const value = (name) => {
 
 const config = JSON.parse(await readFile(resolve(root, 'config.json'), 'utf8'));
 const days = Number(value('days'));
-if (Number.isFinite(days) && days > 0) config.daysAhead = days;
+if (Number.isFinite(days) && days > 0) {
+  config.daysAhead = days;
+  config.monthsAhead = null; // --days 明示時は日数指定を優先
+}
 
 const verbose = !flag('json');
 const result = await scan(config, (m) => verbose && console.error(m));

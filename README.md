@@ -85,13 +85,13 @@ node --test 'test/*.test.mjs'   # 通知判定のテスト
 | --- | --- |
 | `facility.code` | 施設コード。`44` = 小石川運動場。存在しないコードを入れると一覧がエラーに出る |
 | `facility.objects` | 室場の候補名。実在する最初のものが対象になる。**監視できるのは 1 室場だけ**（小石川なら「グラウンド」か「会議室」）。空配列なら施設の先頭の室場 |
-| `daysAhead` | 何日先まで見るか。既定 120（サイトの公開範囲はおよそ 4 ヶ月先まで） |
+| `monthsAhead` | 表示する月数（当月を含む）。`4` なら8月は11月末まで、9月に入ると自動で8月が落ちて12月が入る。サイトの公開範囲もほぼ4ヶ月 |
 | `notifyOn.weekdays` | 通知したい曜日 `[0=日 … 6=土]`。空配列なら全曜日。祝日は常に対象 |
 | `notifyOn.timeFrom` / `timeTo` | 通知したい時間帯。`1800`, `2030` のような HHMM 整数 |
 | `notifyOn.includeLottery` | 抽選の通知を出すか |
 | `intervalMinutes` | 全件走査の間隔。表とレポートを作り直す |
 | `quickIntervalMinutes` | 軽い巡回の間隔。日単位のステータスだけ見て、対象の曜日が満杯から動いていたらすぐ全件走査に入る。キャンセルは数分で消えるのでここが実質の反応速度 |
-| `quickDaysAhead` | 軽い巡回で見る日数。受付開始の瞬間を捉えたいので既定は `daysAhead` と同じ |
+| `daysAhead` / `quickDaysAhead` | 日数で指定したい場合の上書き（通常は不要。`monthsAhead` が優先） |
 | `quietHours` | `[23, 7]` なら 23:00〜07:00(JST) は通知しない。夜中の変化は保留しておき、静音明けの走査で**まだ空いていれば**まとめて通知する（埋まっていれば黙って捨てる） |
 | `notify.webhookUrl` | 入れると Slack / Discord の incoming webhook にも流す。**これは認証情報**なので公開リポジトリに入れないこと（`config.json` は `.gitignore` 済み）。環境変数 `KOISHIKAWA_WEBHOOK_URL` でも渡せる |
 | `notify.onLotteryCountChange` | 抽選の申込件数が減ったときも通知する |

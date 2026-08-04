@@ -22,16 +22,35 @@ const chunk = (arr, size) =>
   Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, (i + 1) * size));
 
 /**
+ * 表示期間の終端。monthsAhead はカレンダーの月で数える（当月を含む）:
+ * 8月に monthsAhead=4 なら 11/30 まで、9月に入れば自動で 12/31 まで進む。
+ * 月替わりで前の月が落ち、次の月が入る——固定日数の窓と違い、
+ * 「まだ意味のない遠い月の端」がはみ出さない。
+ */
+export function horizonEnd(from, config) {
+  const months = config.monthsAhead;
+  if (Number.isFinite(months) && months > 0) {
+    const [y, m] = from.split('-').map(Number);
+    const t = m - 1 + months - 1; // 最後に含める月（0始まり）
+    const yy = y + Math.floor(t / 12);
+    const mm = t % 12;
+    const lastDay = new Date(Date.UTC(yy, mm + 1, 0)).getUTCDate();
+    return `${yy}-${String(mm + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  }
+  return addDays(from, config.daysAhead ?? 120);
+}
+
+/**
  * @param {object} config config.json の中身
  * @param {(msg: string) => void} [log]
  * @param {{detail?: boolean, daysAhead?: number}} [opts]
  *   detail=false なら日単位のステータスだけを取る（数リクエストで済む速い経路）。
+ *   daysAhead を渡すと monthsAhead より優先される（--days 用）。
  * @returns {Promise<{facility: object, fetchedAt: string, days: object[]}>}
  */
 export async function scan(config, log = () => {}, opts = {}) {
   const { detail = true } = opts;
   const { facility } = config;
-  const daysAhead = opts.daysAhead ?? config.daysAhead;
   // 対象は 1 室場。config の objects は候補名の並びとして扱い、施設に実在する
   // 最初のものを使う（1 日 1 行のデータ構造なので、複数室場は混ざってしまう）。
   const candidates = facility.objects ?? [];
@@ -45,7 +64,7 @@ export async function scan(config, log = () => {}, opts = {}) {
   log(`接続: ${client.facilityName} (code=${facility.code})`);
 
   const from = todayJst();
-  const to = addDays(from, daysAhead);
+  const to = opts.daysAhead ? addDays(from, opts.daysAhead) : horizonEnd(from, config);
   const days = new Map(); // date -> { date, dayStatus, slots }
 
   for (const windowStart of monthWindows(from, to)) {
