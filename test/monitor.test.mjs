@@ -312,7 +312,7 @@ test('申込期間外だけの月も1行にたたむ', async () => {
     days,
   });
   assert.doesNotMatch(html, /12\/01/, '期間外の日を日別の行として出してはいけない');
-  assert.match(html, /申込期間外 — まだ予約・抽選の受付範囲に入っていません/);
+  assert.match(html, /申込期間外 — 受付が始まると通知します/);
   assert.match(html, /11\/30/, '押せる月は日別のまま');
 });
 
