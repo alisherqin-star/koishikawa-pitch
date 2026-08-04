@@ -36,6 +36,8 @@ node bin/check.mjs --json       # 生データを JSON で出力
 node bin/watch.mjs --once       # 1回だけ実行して終了（cron / launchd 用）
 node bin/watch.mjs --interval 15   # 全件走査の間隔（分）
 node bin/watch.mjs --reset      # 状態を捨てて基準を取り直す
+node bin/test-notify.mjs        # 通知の疎通確認（テストメッセージを送る）
+node bin/build-page.mjs         # 公開ページだけ作り直す
 node --test 'test/*.test.mjs'   # 通知判定のテスト
 ```
 
@@ -174,8 +176,33 @@ cp config.example.json config.json
 
 ### GitHub Pages で公開する
 
-`config.json` の `publish.git` を `true` にすると、全件走査のたびに `docs/index.html` を
-書き出して commit・push する。GitHub 側では **Settings → Pages → Source: main / docs** を
-選ぶだけ。Actions もブランチ分けも要らない。
+公開ページ <https://alisherqin-star.github.io/koishikawa-pitch/> は
+**GitHub Actions が30分ごとに更新する**（`.github/workflows/update-page.yml`）。
+Mac の電源が入っていなくても止まらない。役割分担は次のとおり:
 
-Mac が寝ていても最後に push された表は見えるが、更新は Mac が動いているときだけ。
+| | 担当 | 動く条件 |
+| --- | --- | --- |
+| `bin/watch.mjs`（ローカル） | 通知（macOS / webhook） | Mac が起きている間 |
+| GitHub Actions | 公開ページの更新 | 常時 |
+
+そのためローカルの `publish.git` は `false` にしてある。両方から push すると
+ぶつかるため（衝突しても `pull --rebase` で復帰はする）。ローカルだけで運用したい
+場合は `true` に戻し、ワークフローを無効化すればよい。
+
+注意: **公開リポジトリの scheduled workflow は、リポジトリに60日間なんの活動も無いと
+GitHub に自動で止められる**。このワークフロー自身が commit を作り続けるので通常は
+問題にならないが、長期間まったく変化が無い場合は Actions タブを見ておくとよい。
+
+### グループチャットに流す
+
+Discord なら「サーバー設定 → 連携サービス → ウェブフック」、Slack なら
+「api.slack.com/apps → Incoming Webhooks」で URL を作り、`config.json` の
+`notify.webhookUrl` に入れる。疎通確認:
+
+```bash
+node bin/test-notify.mjs
+```
+
+実際の空き状況とは無関係のテストメッセージが飛ぶ。**この URL は認証情報**（知っていれば
+誰でもそのチャンネルに投稿できる）なので公開リポジトリに置かないこと。
+`config.json` は追跡対象外にしてあり、環境変数 `KOISHIKAWA_WEBHOOK_URL` でも渡せる。
