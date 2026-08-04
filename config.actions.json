@@ -10,19 +10,13 @@
   },
   "monthsAhead": 4,
   "notifyOn": {
-    "weekdays": [
-      0,
-      6
-    ],
+    "weekdays": [],
     "timeFrom": null,
     "timeTo": null,
     "includeLottery": true
   },
   "intervalMinutes": 30,
-  "quietHours": [
-    23,
-    7
-  ],
+  "quietHours": null,
   "notify": {
     "macos": false,
     "sound": false,

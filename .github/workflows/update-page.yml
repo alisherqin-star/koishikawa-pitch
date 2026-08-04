@@ -11,7 +11,7 @@ on:
   workflow_dispatch: # 手動実行ボタン
   push:
     branches: [main]
-    paths: ['src/**', 'bin/**', 'config.example.json']
+    paths: ['src/**', 'bin/**', 'config.example.json', 'config.actions.json', 'actions-state.json']
 
 permissions:
   contents: write
