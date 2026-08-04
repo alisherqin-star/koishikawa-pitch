@@ -57,6 +57,23 @@ const asUtc = (dateStr) => new Date(`${dateStr}T12:00:00Z`);
 export const weekdayOf = (dateStr) => asUtc(dateStr).getUTCDay();
 export const weekdayJa = (dateStr) => WEEKDAY_JA[weekdayOf(dateStr)];
 
+/**
+ * 取得時刻を JST で表示する。GitHub Actions の runner は UTC なので、
+ * toLocaleString('ja-JP') だけだと言語が変わるだけで時刻が 9 時間ずれる。
+ */
+export function formatJst(iso) {
+  const parts = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso));
+  return `${parts} JST`;
+}
+
 /** 日本時間の「今日」を YYYY-MM-DD で返す。実行環境の TZ に依存しない。 */
 export function todayJst() {
   return new Intl.DateTimeFormat('en-CA', {

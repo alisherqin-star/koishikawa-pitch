@@ -1,0 +1,53 @@
+name: 空き状況を更新
+
+# Mac が寝ていてもページが更新されるように、取得を GitHub 側で回す。
+# ローカルの watch.mjs は通知担当、こちらは公開ページ担当、と役割を分ける。
+
+on:
+  schedule:
+    # 30分ごと。GitHub の cron は UTC だが、このジョブは時刻に依存しない
+    # （日付は Asia/Tokyo で計算している）。混雑時は数分遅れることがある。
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # 手動実行ボタン
+  push:
+    branches: [main]
+    paths: ['src/**', 'bin/**', 'config.example.json']
+
+permissions:
+  contents: write
+
+# 前の実行が終わる前に次が始まると push がぶつかるので直列化する。
+concurrency:
+  group: update-page
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 通知判定のテスト
+        run: node --test 'test/*.test.mjs'
+
+      - name: 空き状況を取得してページを作る
+        run: node bin/build-page.mjs
+
+      - name: 変更があれば commit して push
+        run: |
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/index.html docs/.nojekyll
+          if git diff --cached --quiet; then
+            echo '内容に変更なし'
+            exit 0
+          fi
+          git commit -m "空き状況 $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M') JST"
+          # ローカルの watch.mjs が同時に push している場合に備える
+          git pull --rebase --autostash origin main
+          git push origin HEAD:main

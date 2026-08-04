@@ -2,6 +2,7 @@
 
 import {
   DAY_STATUS,
+  formatJst,
   hhmm,
   isBookable,
   isLotteryOpen,
@@ -49,6 +50,42 @@ const TERM_COLOR = {
 };
 
 /**
+ * 月ごとの要約。満杯の月は表から折り畳まれて消えるので、
+ * 「取得できていない」のか「取れる枠が無い」のかが分かるようにする。
+ */
+export function monthSummary(days) {
+  const months = new Map();
+  for (const day of days) {
+    const key = day.date.slice(0, 7);
+    if (!months.has(key)) {
+      months.set(key, { month: key, days: 0, bookable: 0, lottery: 0, pending: 0, full: 0, closed: 0 });
+    }
+    const m = months.get(key);
+    m.days++;
+    if (day.dayStatus === 'full') m.full++;
+    if (day.dayStatus === 'closed' || day.dayStatus === 'time-over') m.closed++;
+    for (const slot of day.slots) {
+      if (isBookable(slot)) m.bookable++;
+      else if (isLotteryOpen(slot)) m.lottery++;
+      else if (slot.status === 'vacant') m.pending++;
+    }
+  }
+  return [...months.values()].map((m) => ({
+    ...m,
+    label:
+      m.bookable > 0 || m.lottery > 0
+        ? [m.bookable && `申込可 ${m.bookable}コマ`, m.lottery && `抽選 ${m.lottery}コマ`]
+            .filter(Boolean)
+            .join(' / ')
+        : m.pending > 0
+          ? `受付開始前（空き ${m.pending}コマ）`
+          : m.closed === m.days
+            ? '申込期間外'
+            : '空きなし',
+  }));
+}
+
+/**
  * 端末向けの表。
  * @param {object} result scan() の戻り値
  * @param {{all?: boolean, color?: boolean}} [opts] all=true で満杯の日も表示
@@ -63,7 +100,16 @@ export function renderTable(result, { all = false, color = process.stdout.isTTY 
     c(C.bold, `${facility.name} ${facility.objects.join('/')}`) +
       c(C.dim, `  ${range.from} 〜 ${range.to}`),
   );
-  out.push(c(C.dim, `取得: ${new Date(result.fetchedAt).toLocaleString('ja-JP')}`));
+  out.push(c(C.dim, `取得: ${formatJst(result.fetchedAt)}`));
+  out.push('');
+  for (const m of monthSummary(result.days)) {
+    const hot = m.bookable > 0 || m.lottery > 0;
+    out.push(
+      c(C.dim, `  ${m.month.slice(5)}月 `) +
+        (hot ? c(C.green, m.label) : c(C.dim, m.label)) +
+        c(C.dim, `  (${m.days}日)`),
+    );
+  }
   out.push('');
 
   if (cols.length === 0) {
@@ -290,6 +336,18 @@ ${refreshSeconds > 0 ? `<meta http-equiv="refresh" content="${refreshSeconds}">`
   .stat.s-lot { border-left:3px solid var(--lot); }
   .stat.s-dorm b { color:var(--muted); }
 
+  /* 月ごとの要約。満杯の月は表から折り畳まれて消えるので、
+     「取れていない」のか「取れる枠が無い」のかをここで示す。 */
+  .months { display:flex; flex-wrap:wrap; gap:8px; }
+  .month { display:flex; align-items:baseline; gap:8px; padding:6px 12px; border-radius:4px;
+           background:var(--surface); border:1px solid var(--hair); font-size:12px; }
+  .month b { font-family:var(--mono); font-size:13px; }
+  .month span { color:var(--muted); }
+  .month.hot { border-color:var(--ok); }
+  .month.hot span { color:var(--ok); font-weight:600; }
+  .month.warm { border-color:var(--lot); }
+  .month.warm span { color:var(--lot); font-weight:600; }
+
   .picks { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
   .pick h2 { margin:0 0 8px; font-size:11px; font-weight:700; letter-spacing:.09em;
              text-transform:uppercase; color:var(--muted); }
@@ -370,13 +428,23 @@ ${refreshSeconds > 0 ? `<meta http-equiv="refresh" content="${refreshSeconds}">`
     )}</small></h1>
     <div class="stamp">${
       live ? '<span class="live">● 自動更新中</span><br>' : ''
-    }取得 ${esc(new Date(result.fetchedAt).toLocaleString('ja-JP'))}<br>${esc(range.from)} → ${esc(range.to)}</div>
+    }取得 ${esc(formatJst(result.fetchedAt))}<br>${esc(range.from)} → ${esc(range.to)}</div>
   </header>
 
   <section class="stats">
     <div class="stat s-ok"><b>${bookable.length}</b><span>今すぐ申込めるコマ</span></div>
     <div class="stat s-lot"><b>${lotOpen.length}</b><span>抽選で申込めるコマ</span></div>
     <div class="stat s-dorm"><b>${pending}</b><span>受付開始前の空き</span></div>
+  </section>
+
+  <section class="months">
+    ${monthSummary(result.days)
+      .map(
+        (m) =>
+          `<div class="month${m.bookable > 0 ? ' hot' : m.lottery > 0 ? ' warm' : ''}">
+        <b>${esc(m.month.slice(5))}月</b><span>${esc(m.label)}</span></div>`,
+      )
+      .join('')}
   </section>
 
   <section class="picks">

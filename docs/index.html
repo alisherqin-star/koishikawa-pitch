@@ -55,6 +55,18 @@
   .stat.s-lot { border-left:3px solid var(--lot); }
   .stat.s-dorm b { color:var(--muted); }
 
+  /* 月ごとの要約。満杯の月は表から折り畳まれて消えるので、
+     「取れていない」のか「取れる枠が無い」のかをここで示す。 */
+  .months { display:flex; flex-wrap:wrap; gap:8px; }
+  .month { display:flex; align-items:baseline; gap:8px; padding:6px 12px; border-radius:4px;
+           background:var(--surface); border:1px solid var(--hair); font-size:12px; }
+  .month b { font-family:var(--mono); font-size:13px; }
+  .month span { color:var(--muted); }
+  .month.hot { border-color:var(--ok); }
+  .month.hot span { color:var(--ok); font-weight:600; }
+  .month.warm { border-color:var(--lot); }
+  .month.warm span { color:var(--lot); font-weight:600; }
+
   .picks { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:20px; }
   .pick h2 { margin:0 0 8px; font-size:11px; font-weight:700; letter-spacing:.09em;
              text-transform:uppercase; color:var(--muted); }
@@ -131,13 +143,22 @@
 <div class="page">
   <header>
     <h1>小石川運動場<small>グラウンド ・ 軟式野球・サッカー・ソフトボール・ラクロス・ラグビー・アメリカンフットボール（ラクロス、ラグビー、アメリカンフットボールは練習のみ）</small></h1>
-    <div class="stamp">取得 2026/8/4 23:00:15<br>2026-08-04 → 2026-12-02</div>
+    <div class="stamp">取得 2026/08/04 23:06 JST<br>2026-08-04 → 2026-12-02</div>
   </header>
 
   <section class="stats">
     <div class="stat s-ok"><b>9</b><span>今すぐ申込めるコマ</span></div>
     <div class="stat s-lot"><b>73</b><span>抽選で申込めるコマ</span></div>
     <div class="stat s-dorm"><b>137</b><span>受付開始前の空き</span></div>
+  </section>
+
+  <section class="months">
+    <div class="month">
+        <b>08月</b><span>空きなし</span></div><div class="month hot">
+        <b>09月</b><span>申込可 9コマ</span></div><div class="month warm">
+        <b>10月</b><span>抽選 73コマ</span></div><div class="month">
+        <b>11月</b><span>受付開始前（空き 137コマ）</span></div><div class="month">
+        <b>12月</b><span>申込期間外</span></div>
   </section>
 
   <section class="picks">
@@ -299,7 +320,7 @@
       <a href="https://www.city.bunkyo.lg.jp/bunka/sports/shisetsu/koishikawa.html">施設案内</a> ・ 
       <a href="https://www.shisetsu.city.bunkyo.lg.jp/user/Home">予約サイト</a>
     </p>
-    <p style="margin:0">30分ごとに自動更新しています。申込は必ず予約サイトで最新の状況を確認してください。</p>
+    <p style="margin:0">30分ごとに GitHub Actions が自動更新しています。申込は必ず予約サイトで最新の状況を確認してください。</p>
   </footer>
 </div>
 <script>

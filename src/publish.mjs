@@ -41,7 +41,15 @@ export async function pushPage(root, path, message) {
   const { stdout: remotes } = await git(['remote'], root);
   if (remotes.trim() === '') return 'commit 済み（remote 未設定のため push なし）';
 
-  const { stdout: branch } = await git(['rev-parse', '--abbrev-ref', 'HEAD'], root);
-  await git(['push', 'origin', branch.trim()], root);
-  return `push 完了 (${branch.trim()})`;
+  const { stdout: head } = await git(['rev-parse', '--abbrev-ref', 'HEAD'], root);
+  const branch = head.trim();
+  try {
+    await git(['push', 'origin', branch], root);
+  } catch {
+    // GitHub Actions 側が先に push していると弾かれる。取り込んでからやり直す。
+    await git(['pull', '--rebase', '--autostash', 'origin', branch], root);
+    await git(['push', 'origin', branch], root);
+    return `push 完了 (${branch}, リモートを取り込み直し)`;
+  }
+  return `push 完了 (${branch})`;
 }
