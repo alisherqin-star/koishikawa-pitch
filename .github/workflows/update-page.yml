@@ -1,13 +1,15 @@
 name: 空き状況を更新
 
-# Mac が寝ていてもページが更新されるように、取得を GitHub 側で回す。
-# ローカルの watch.mjs は通知担当、こちらは公開ページ担当、と役割を分ける。
+# 取得・通知・公開のすべてを GitHub 側で回す。Mac の電源とは無関係に動く。
 
 on:
   schedule:
-    # 30分ごと。GitHub の cron は UTC だが、このジョブは時刻に依存しない
-    # （日付は Asia/Tokyo で計算している）。混雑時は数分遅れることがある。
-    - cron: '*/30 * * * *'
+    # 10分ごと。ほとんどの回は日単位だけ見る軽い巡回（十数秒）で終わり、
+    # 前回の全件走査から30分経っているか、監視対象の日が動いたときだけ
+    # 全件走査に切り替わる（--tick が state の fullScanAt を見て判断する）。
+    # GitHub の cron は UTC だが、このジョブは日付を Asia/Tokyo で計算するので
+    # 時刻に依存しない。混雑時は数分遅れることがある。
+    - cron: '*/10 * * * *'
   workflow_dispatch: # 手動実行ボタン
   push:
     branches: [main]
@@ -35,13 +37,14 @@ jobs:
       - name: 通知判定のテスト
         run: node --test 'test/*.test.mjs'
 
-      # watch --once は取得→前回状態との差分→Discord通知→ページ書き出しまで行う。
+      # --tick は取得→前回状態との差分→Discord通知→ページ書き出しまでを1周期分行う。
       # 状態は actions-state.json としてリポジトリに残すので、次の実行が差分を取れる。
-      # 静音時間帯（23-7 JST）のイベントも state 内の保留リスト経由で朝に通知される。
+      # 軽い巡回だけで終わった回は state もページも変わらず、commit も発生しない。
+      # 静音時間帯（23-7 JST）のイベントは state 内の保留リスト経由で朝に通知される。
       - name: 空き状況を取得して通知・ページ更新
         env:
           KOISHIKAWA_WEBHOOK_URL: ${{ secrets.KOISHIKAWA_WEBHOOK_URL }}
-        run: node bin/watch.mjs --once --config config.actions.json
+        run: node bin/watch.mjs --tick --config config.actions.json
 
       - name: 変更があれば commit して push
         run: |
@@ -49,10 +52,9 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/index.html docs/.nojekyll actions-state.json
           if git diff --cached --quiet; then
-            echo '内容に変更なし'
+            echo '軽い巡回のみ・変化なし'
             exit 0
           fi
           git commit -m "空き状況 $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M') JST"
-          # ローカルの watch.mjs が同時に push している場合に備える
           git pull --rebase --autostash origin main
           git push origin HEAD:main
