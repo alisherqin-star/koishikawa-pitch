@@ -9,15 +9,16 @@
 	<array>
 		<string>__NODE__</string>
 		<string>__PROJECT_DIR__/bin/watch.mjs</string>
-		<string>--once</string>
+		<string>--tick</string>
 	</array>
 
 	<key>WorkingDirectory</key>
 	<string>__PROJECT_DIR__</string>
 
-	<!-- 30分ごと。config.json の intervalMinutes とは独立なので、変えるならここも直す -->
+	<!-- 5分ごとに --tick を叩く。軽い巡回か全件走査かは tick 自身が
+	     状態ファイルの fullScanAt と config の intervalMinutes から判断する -->
 	<key>StartInterval</key>
-	<integer>1800</integer>
+	<integer>300</integer>
 
 	<key>RunAtLoad</key>
 	<true/>

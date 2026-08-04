@@ -17,7 +17,8 @@ export function snapshot(result) {
       };
     }
   }
-  return { version: 2, slots, dayStatus };
+  // fullScanAt は launchd の --tick が「次は軽い巡回か全件か」を決めるのに使う。
+  return { version: 2, slots, dayStatus, fullScanAt: new Date().toISOString() };
 }
 
 export async function loadState(path) {

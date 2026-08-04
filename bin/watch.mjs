@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 // 常駐して定期的に空き状況を取得し、新しく空いたコマ／抽選申込が可能になったコマを通知する。
 //
-//   node bin/watch.mjs                 config.json の intervalMinutes 間隔で監視
+//   node bin/watch.mjs                 config.json の intervalMinutes 間隔で監視（常駐）
 //   node bin/watch.mjs --interval 15   間隔を上書き（分）
-//   node bin/watch.mjs --once          1回だけ実行して終了（cron / launchd 向け）
+//   node bin/watch.mjs --once          全件走査を1回だけ実行して終了
+//   node bin/watch.mjs --tick          launchd 向けの1周期。前回の全件走査から
+//                                      intervalMinutes 経っていれば全件、そうでなければ
+//                                      軽い巡回だけ行い、変化があれば全件に切り替える
 //   node bin/watch.mjs --reset         状態ファイルを捨てて基準を取り直す
 
 import { readFile, writeFile, unlink } from 'node:fs/promises';
@@ -153,7 +156,27 @@ async function quickPoll() {
   return true;
 }
 
+/**
+ * launchd から5分ごとに呼ばれる1周期。常駐せず、毎回プロセスが終了する。
+ * 常駐版と同じ2段構え（軽い巡回＋定期全件）を、状態ファイルの
+ * fullScanAt を時計代わりにして再現する。
+ */
+async function tick() {
+  const previous = await loadState(statePath);
+  const fullEvery = (config.intervalMinutes ?? 30) * 60_000;
+  const age = previous?.fullScanAt ? Date.now() - Date.parse(previous.fullScanAt) : Infinity;
+  if (age >= fullEvery || (await quickPoll())) {
+    await runOnce();
+  } else {
+    say('巡回のみ・変化なし');
+  }
+}
+
 async function main() {
+  if (flag('tick')) {
+    await tick();
+    return;
+  }
   if (flag('once')) {
     await runOnce();
     return;
