@@ -272,13 +272,18 @@ export function renderHtml(result, { refreshSeconds = 0, live = false, fragment 
   const when = ({ d, s }) =>
     `<b>${d.date.slice(5).replace('-', '/')}</b><i>${weekdayJa(d.date)}</i>${hhmm(s.from)}–${hhmm(s.to)}`;
 
-  // まだ受付が始まっていない月は、日ごとに並べても押せるコマが1つも無い。
-  // 30行の斜線を出しても情報量が増えないので、1行にたたんで理由だけ書く。
-  const pendingMonths = new Set(
-    monthSummary(result.days)
-      .filter((m) => m.bookable === 0 && m.lottery === 0 && m.pending > 0)
-      .map((m) => m.month),
-  );
+  const summary = monthSummary(result.days);
+
+  // 押せるコマが1つも無い月は、日ごとに並べても行数を食うだけなので1行にたたむ。
+  // 「受付開始前」（空きはあるがまだ申込めない）と「申込期間外」（受付範囲の外、
+  // 期間の末尾にはみ出た月）の2種類。満杯の月はたたまない — ×の壁は
+  // 「照会した上で空きが無い」ことの証跡として意味がある。
+  const foldKind = new Map();
+  for (const m of summary) {
+    if (m.bookable > 0 || m.lottery > 0) continue;
+    if (m.pending > 0) foldKind.set(m.month, 'pending');
+    else if (m.closed === m.days) foldKind.set(m.month, 'closed');
+  }
 
   const renderDay = (day) => {
       const rest = day.weekday === 0 || day.weekday === 6 || day.isHoliday;
@@ -300,17 +305,22 @@ export function renderHtml(result, { refreshSeconds = 0, live = false, fragment 
   };
 
   const rows = [];
-  const seenPending = new Set();
+  const folded = new Set();
   for (const day of result.days) {
     const month = day.date.slice(0, 7);
-    if (pendingMonths.has(month)) {
-      if (seenPending.has(month)) continue;
-      seenPending.add(month);
-      const info = monthSummary(result.days).find((m) => m.month === month);
+    const kind = foldKind.get(month);
+    if (kind) {
+      if (folded.has(month)) continue;
+      folded.add(month);
+      const info = summary.find((m) => m.month === month);
+      const text =
+        kind === 'pending'
+          ? `受付開始前 — ${info.days}日分 ${info.pending}コマが空いていますが、` +
+            `まだ申込めません。受付が始まると通知します。`
+          : `申込期間外 — まだ予約・抽選の受付範囲に入っていません。`;
       rows.push(
         `<div class="row folded"><div class="date"><b>${Number(month.slice(5))}月</b></div>` +
-          `<div class="fold">受付開始前 — ${info.days}日分 ${info.pending}コマが空いていますが、` +
-          `まだ申込めません。受付が始まると通知します。</div></div>`,
+          `<div class="fold">${text}</div></div>`,
       );
       continue;
     }
@@ -482,7 +492,7 @@ ${refreshSeconds > 0 ? `<meta http-equiv="refresh" content="${refreshSeconds}">`
   </section>
 
   <section class="months">
-    ${monthSummary(result.days)
+    ${summary
       .map(
         (m) =>
           `<div class="month${m.bookable > 0 ? ' hot' : m.lottery > 0 ? ' warm' : ''}">

@@ -297,3 +297,37 @@ test('復元時にもフィルタを掛け直す（保留中の設定変更に�
   assert.equal(reviveEvents(pending, result, { notifyOn: { weekdays: [0, 6] } }).length, 0);
   assert.equal(reviveEvents(pending, result, { notifyOn: { weekdays: [] } }).length, 1);
 });
+
+test('申込期間外だけの月も1行にたたむ', async () => {
+  const { renderHtml } = await import('../src/format.mjs');
+  const days = [
+    day('2026-11-30'), // 押せる日を1日入れて表を成立させる
+    { date: '2026-12-01', weekday: 2, isHoliday: false, dayStatus: 'time-over', slots: [] },
+    { date: '2026-12-02', weekday: 3, isHoliday: false, dayStatus: 'time-over', slots: [] },
+  ];
+  const html = renderHtml({
+    facility: { name: 'X', objects: ['グラウンド'], description: '', guideUrl: '' },
+    range: { from: '2026-11-30', to: '2026-12-02' },
+    fetchedAt: new Date().toISOString(),
+    days,
+  });
+  assert.doesNotMatch(html, /12\/01/, '期間外の日を日別の行として出してはいけない');
+  assert.match(html, /申込期間外 — まだ予約・抽選の受付範囲に入っていません/);
+  assert.match(html, /11\/30/, '押せる月は日別のまま');
+});
+
+test('満杯の月はたたまない（照会済みの証跡として行を残す）', async () => {
+  const { renderHtml } = await import('../src/format.mjs');
+  const days = [
+    day('2026-08-05', { status: 'full', disabled: true }),
+    day('2026-08-06', { status: 'full', disabled: true }),
+  ];
+  const html = renderHtml({
+    facility: { name: 'X', objects: ['グラウンド'], description: '', guideUrl: '' },
+    range: { from: '2026-08-05', to: '2026-08-06' },
+    fetchedAt: new Date().toISOString(),
+    days,
+  });
+  assert.match(html, /08\/05/);
+  assert.equal((html.match(/row folded/g) ?? []).length, 0);
+});
