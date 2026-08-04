@@ -1,0 +1,15 @@
+{
+  "name": "koishikawa-pitch-watch",
+  "version": "1.0.0",
+  "description": "文京区 小石川運動場 グラウンドの空き状況を定期監視して通知する",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "check": "node bin/check.mjs",
+    "watch": "node bin/watch.mjs",
+    "test": "node --test 'test/*.test.mjs'"
+  }
+}

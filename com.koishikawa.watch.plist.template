@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.koishikawa.watch</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>__NODE__</string>
+		<string>__PROJECT_DIR__/bin/watch.mjs</string>
+		<string>--once</string>
+	</array>
+
+	<key>WorkingDirectory</key>
+	<string>__PROJECT_DIR__</string>
+
+	<!-- 30分ごと。config.json の intervalMinutes とは独立なので、変えるならここも直す -->
+	<key>StartInterval</key>
+	<integer>1800</integer>
+
+	<key>RunAtLoad</key>
+	<true/>
+
+	<key>StandardOutPath</key>
+	<string>__PROJECT_DIR__/launchd.out.log</string>
+	<key>StandardErrorPath</key>
+	<string>__PROJECT_DIR__/launchd.err.log</string>
+</dict>
+</plist>

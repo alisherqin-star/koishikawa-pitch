@@ -1,0 +1,11 @@
+# 実行時に生成されるもの
+state.json
+report.html
+watch.log
+launchd.out.log
+launchd.err.log
+.scratch/
+
+# 個人設定。webhookUrl は認証情報なので追跡しない
+config.json
+com.koishikawa.watch.plist

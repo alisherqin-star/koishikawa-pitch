@@ -1,0 +1,45 @@
+{
+  "_comment": "設定ファイル。施設コードは bin/check.mjs 実行時のエラーメッセージで一覧が出ます。",
+  "facility": {
+    "categoryCode": 4,
+    "code": 44,
+    "name": "小石川運動場",
+    "objects": [
+      "グラウンド"
+    ]
+  },
+  "daysAhead": 120,
+  "_notifyOn": "weekdays は 0=日 … 6=土。祝日は指定に関わらず常に対象。[] にすると全曜日",
+  "notifyOn": {
+    "weekdays": [
+      0,
+      6
+    ],
+    "timeFrom": null,
+    "timeTo": null,
+    "includeLottery": true
+  },
+  "_interval": "intervalMinutes は全件走査、quickIntervalMinutes は日単位だけ見る軽い巡回",
+  "intervalMinutes": 30,
+  "quickIntervalMinutes": 5,
+  "quickDaysAhead": 120,
+  "quietHours": [
+    23,
+    7
+  ],
+  "notify": {
+    "macos": true,
+    "sound": true,
+    "onLotteryCountChange": false,
+    "webhookUrl": ""
+  },
+  "reportPath": "report.html",
+  "statePath": "state.json",
+  "logPath": "watch.log",
+  "publish": {
+    "path": "docs/index.html",
+    "git": false
+  },
+  "_publish": "GitHub Pages 用。git:true にすると全件走査のたびに commit して push する",
+  "_webhook": "webhookUrl は認証情報。公開リポジトリに入れないこと。環境変数 KOISHIKAWA_WEBHOOK_URL でも指定できる"
+}
