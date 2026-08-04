@@ -21,7 +21,8 @@ const value = (name) => {
 };
 
 const config = JSON.parse(await readFile(resolve(root, 'config.json'), 'utf8'));
-if (value('days')) config.daysAhead = Number(value('days'));
+const days = Number(value('days'));
+if (Number.isFinite(days) && days > 0) config.daysAhead = days;
 
 const verbose = !flag('json');
 const result = await scan(config, (m) => verbose && console.error(m));

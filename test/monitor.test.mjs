@@ -228,3 +228,72 @@ test('受付開始前の月は1行に折り畳まれる', async () => {
   assert.equal((html.match(/<div class="row /g) ?? []).length, 1, '20日ぶんの行を出してはいけない');
   assert.doesNotMatch(html, /<\/div>,<div/, '配列の join 漏れ');
 });
+
+// --- 静音時間帯の保留 ---------------------------------------------------------
+
+test('静音中のイベントは保留し、朝も空いていれば復元する', async () => {
+  const { mergePending, reviveEvents } = await import('../src/monitor.mjs');
+  const pending = mergePending([], [
+    { type: 'vacant', day: { date: '2026-09-12' }, slot: { from: 830, to: 1030 } },
+  ]);
+  assert.equal(pending.length, 1);
+  const alive = reviveEvents(pending, { days: [day('2026-09-12')] });
+  assert.equal(alive.length, 1);
+  assert.equal(alive[0].type, 'vacant');
+  assert.equal(alive[0].day.date, '2026-09-12');
+});
+
+test('保留した空きが朝までに埋まっていたら捨てる', async () => {
+  const { mergePending, reviveEvents } = await import('../src/monitor.mjs');
+  const pending = mergePending([], [
+    { type: 'vacant', day: { date: '2026-09-12' }, slot: { from: 830, to: 1030 } },
+  ]);
+  const gone = reviveEvents(pending, {
+    days: [day('2026-09-12', { status: 'full', disabled: true })],
+  });
+  assert.equal(gone.length, 0);
+});
+
+test('同じコマを複数回保留しても1件にまとまる', async () => {
+  const { mergePending } = await import('../src/monitor.mjs');
+  const e = { type: 'lottery', day: { date: '2026-11-01' }, slot: { from: 630, to: 830 } };
+  assert.equal(mergePending(mergePending([], [e]), [e]).length, 1);
+});
+
+test('lot-drop は保留しない（朝に件数を伝えても意味がない）', async () => {
+  const { mergePending } = await import('../src/monitor.mjs');
+  const p = mergePending([], [
+    { type: 'lot-drop', day: { date: '2026-10-01' }, slot: { from: 630, to: 830 } },
+  ]);
+  assert.equal(p.length, 0);
+});
+
+test('端末の表でも受付開始前の月は折りたたむ（--all で展開）', async () => {
+  const { renderTable } = await import('../src/format.mjs');
+  const days = [];
+  for (let d = 1; d <= 10; d++) {
+    days.push(day(`2026-11-${String(d).padStart(2, '0')}`, { disabled: true }));
+  }
+  const result = {
+    facility: { name: 'X', objects: ['グラウンド'] },
+    range: { from: '2026-11-01', to: '2026-11-10' },
+    fetchedAt: new Date().toISOString(),
+    days,
+  };
+  const folded = renderTable(result, { color: false });
+  assert.doesNotMatch(folded, /11\/05/, '折りたたみ時に日別の行を出してはいけない');
+  assert.match(folded, /--all で全日表示/);
+  const full = renderTable(result, { all: true, color: false });
+  assert.match(full, /11\/05/);
+});
+
+test('復元時にもフィルタを掛け直す（保留中の設定変更に追従）', async () => {
+  const { mergePending, reviveEvents } = await import('../src/monitor.mjs');
+  // 2026-09-07 は月曜。保留時は全曜日、復元時は週末のみ → 捨てる
+  const pending = mergePending([], [
+    { type: 'vacant', day: { date: '2026-09-07' }, slot: { from: 830, to: 1030 } },
+  ]);
+  const result = { days: [day('2026-09-07')] };
+  assert.equal(reviveEvents(pending, result, { notifyOn: { weekdays: [0, 6] } }).length, 0);
+  assert.equal(reviveEvents(pending, result, { notifyOn: { weekdays: [] } }).length, 1);
+});

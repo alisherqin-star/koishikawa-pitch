@@ -14,6 +14,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scan } from '../src/scan.mjs';
 import { renderHtml } from '../src/format.mjs';
+import { isBookable } from '../src/model.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const argv = process.argv.slice(2);
@@ -23,7 +24,8 @@ const value = (name, fallback) => {
 };
 
 const config = JSON.parse(await readFile(resolve(root, 'config.json'), 'utf8'));
-const port = Number(value('port', 8787));
+const portArg = Number(value('port', 8787));
+const port = Number.isFinite(portArg) && portArg > 0 ? portArg : 8787;
 const host = value('host', '0.0.0.0');
 const intervalMs = (config.intervalMinutes ?? 30) * 60_000;
 
@@ -37,12 +39,9 @@ async function refresh() {
   try {
     const result = await scan(config);
     // ページ側にも自動更新をかけて、開きっぱなしでも古い表を見せない。
-    page = renderHtml(result, { refreshSeconds: config.intervalMinutes * 60, live: true });
+    page = renderHtml(result, { refreshSeconds: (config.intervalMinutes ?? 30) * 60, live: true });
     updatedAt = new Date();
-    const open = result.days.reduce(
-      (n, d) => n + d.slots.filter((s) => s.status === 'vacant' && !s.disabled).length,
-      0,
-    );
+    const open = result.days.reduce((n, d) => n + d.slots.filter(isBookable).length, 0);
     say(`更新: 申込可 ${open} コマ`);
   } catch (e) {
     say(`取得に失敗: ${e.message}（前回の表を出し続けます）`);

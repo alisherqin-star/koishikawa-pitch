@@ -92,7 +92,7 @@ node --test 'test/*.test.mjs'   # 通知判定のテスト
 | `intervalMinutes` | 全件走査の間隔。表とレポートを作り直す |
 | `quickIntervalMinutes` | 軽い巡回の間隔。日単位のステータスだけ見て、対象の曜日が満杯から動いていたらすぐ全件走査に入る。キャンセルは数分で消えるのでここが実質の反応速度 |
 | `quickDaysAhead` | 軽い巡回で見る日数。受付開始の瞬間を捉えたいので既定は `daysAhead` と同じ |
-| `quietHours` | `[23, 7]` なら 23:00〜07:00(JST) は通知しない（ログには残る） |
+| `quietHours` | `[23, 7]` なら 23:00〜07:00(JST) は通知しない。夜中の変化は保留しておき、静音明けの走査で**まだ空いていれば**まとめて通知する（埋まっていれば黙って捨てる） |
 | `notify.webhookUrl` | 入れると Slack / Discord の incoming webhook にも流す。**これは認証情報**なので公開リポジトリに入れないこと（`config.json` は `.gitignore` 済み）。環境変数 `KOISHIKAWA_WEBHOOK_URL` でも渡せる |
 | `notify.onLotteryCountChange` | 抽選の申込件数が減ったときも通知する |
 
@@ -142,6 +142,8 @@ GET  /user/AvailabilityCheckApplySelectTime              コマ単位の空き�
 見に行きたいが、毎回 50 秒かけるわけにはいかない。そこで日単位のステータスだけを見る
 巡回（120 日ぶんで約 10 秒）を `quickIntervalMinutes` ごとに回し、対象の曜日が
 「空きなし」から動いたときだけ全件走査に切り替える。
+既に「一部空き」の日に別のコマが増えた場合は日単位のステータスが変わらないため
+軽い巡回では検知できず、次の全件走査（最大30分後）で拾う。
 
 ## 注意
 

@@ -19,9 +19,11 @@ import {
   changedDays,
   describeEvent,
   summarizeEvents,
+  mergePending,
+  reviveEvents,
   inQuietHours,
 } from '../src/monitor.mjs';
-import { isBookable, isLotteryOpen } from '../src/model.mjs';
+import { formatJst, isBookable, isLotteryOpen } from '../src/model.mjs';
 import { dispatch, appendLog } from '../src/notify.mjs';
 import { writePage, pushPage } from '../src/publish.mjs';
 
@@ -34,7 +36,8 @@ const value = (name) => {
 };
 
 const config = JSON.parse(await readFile(resolve(root, 'config.json'), 'utf8'));
-if (value('interval')) config.intervalMinutes = Number(value('interval'));
+const interval = Number(value('interval'));
+if (Number.isFinite(interval) && interval > 0) config.intervalMinutes = interval;
 const statePath = resolve(root, config.statePath ?? 'state.json');
 const logPath = resolve(root, config.logPath ?? 'watch.log');
 
@@ -49,7 +52,7 @@ const say = (msg) => console.log(`[${stamp()}] ${msg}`);
 async function runOnce() {
   const previous = await loadState(statePath);
   const result = await scan(config, (m) => say(m));
-  const events = diff(previous, result, config);
+  const fresh = diff(previous, result, config);
 
   if (config.reportPath) {
     await writeFile(
@@ -64,38 +67,53 @@ async function runOnce() {
       note: `${config.intervalMinutes ?? 30}分ごとに自動更新しています。申込は必ず予約サイトで最新の状況を確認してください。`,
     });
     if (config.publish.git) {
-      const at = new Date().toISOString().replace('T', ' ').slice(0, 16);
-      await pushPage(root, config.publish.path, `空き状況 ${at}`)
+      // Actions 側のコミットと同じく JST で刻む（ISO そのままだと UTC で9時間ずれる）
+      await pushPage(root, config.publish.path, `空き状況 ${formatJst(new Date().toISOString())}`)
         .then((r) => say(`公開: ${r}`))
         .catch((e) => say(`公開に失敗: ${e.message.split('\n')[0]}`));
     }
   }
-  await saveState(statePath, snapshot(result));
-
   // 受付開始前の「空き」は数に入れない（今すぐ動ける件数だけを出す）。
   const bookable = result.days.reduce((n, d) => n + d.slots.filter(isBookable).length, 0);
   const lottery = result.days.reduce((n, d) => n + d.slots.filter(isLotteryOpen).length, 0);
   const tally = `申込可 ${bookable} コマ / 抽選申込可 ${lottery} コマ`;
 
   if (previous === null) {
+    await saveState(statePath, { ...snapshot(result), pending: [] });
     say(`初回スキャン完了。${tally}。ここを基準に、次回以降の変化を通知します。`);
     await appendLog(logPath, `baseline: ${tally}`);
     return;
   }
 
+  // 端末とログには静音かどうかに関わらず残す（通知だけを止める）。
+  if (fresh.length > 0) {
+    for (const line of fresh.map(describeEvent)) say(`★ ${line}`);
+    await appendLog(logPath, fresh.map((e) => `${e.type} ${describeEvent(e)}`).join(' | '));
+  }
+
+  const prevPending = previous.pending ?? [];
+
+  // 静音時間帯は通知せず保留に積む。ここで状態だけ更新して捨てると、
+  // 夜中に出た空きが朝も残っていても二度と通知されない。
+  if (inQuietHours(config.quietHours)) {
+    const pending = mergePending(prevPending, fresh);
+    await saveState(statePath, { ...snapshot(result), pending });
+    if (pending.length > 0) say(`（静音時間帯のため通知を保留中: ${pending.length} 件）`);
+    else if (fresh.length === 0) say(`変化なし（${tally}）`);
+    return;
+  }
+
+  // 静音明け: 保留のうち今も申込める・抽選申込できるものだけを合流。
+  const revived = reviveEvents(prevPending, result, config);
+  const seen = new Set(fresh.map((e) => `${e.type}|${e.day.date}|${e.slot.from}`));
+  const events = [...fresh, ...revived.filter((e) => !seen.has(`${e.type}|${e.day.date}|${e.slot.from}`))];
+  await saveState(statePath, { ...snapshot(result), pending: [] });
+
   if (events.length === 0) {
     say(`変化なし（${tally}）`);
     return;
   }
-
-  const lines = events.map(describeEvent);
-  for (const line of lines) say(`★ ${line}`);
-  await appendLog(logPath, events.map((e) => `${e.type} ${describeEvent(e)}`).join(' | '));
-
-  if (inQuietHours(config.quietHours)) {
-    say(`（静音時間帯のため通知は送りません）`);
-    return;
-  }
+  if (revived.length > 0) say(`静音時間帯の保留分 ${revived.length} 件を含めて通知します`);
 
   // 受付が月単位で開くと一度に百件超えるので、多いときは要約に切り替える。
   const BULK = 8;
@@ -104,7 +122,7 @@ async function runOnce() {
       ? summarizeEvents(events, result.facility.name)
       : {
           title: `${result.facility.name} に空きが出ました`,
-          body: lines.join('\n'),
+          body: events.map(describeEvent).join('\n'),
         };
 
   const errors = await dispatch(config, {

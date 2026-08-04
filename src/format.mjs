@@ -102,7 +102,8 @@ export function renderTable(result, { all = false, color = process.stdout.isTTY 
   );
   out.push(c(C.dim, `取得: ${formatJst(result.fetchedAt)}`));
   out.push('');
-  for (const m of monthSummary(result.days)) {
+  const summary = monthSummary(result.days);
+  for (const m of summary) {
     const hot = m.bookable > 0 || m.lottery > 0;
     out.push(
       c(C.dim, `  ${m.month.slice(5)}月 `) +
@@ -128,7 +129,24 @@ export function renderTable(result, { all = false, color = process.stdout.isTTY 
   out.push(c(C.dim, head2));
 
   const skipped = [];
+  // ボードと同じく、受付開始前の月は「未」を並べず1行にたたむ。
+  const pendingMonths = new Set(
+    summary.filter((m) => m.bookable === 0 && m.lottery === 0 && m.pending > 0).map((m) => m.month),
+  );
+  const foldedShown = new Set();
   for (const day of result.days) {
+    const month = day.date.slice(0, 7);
+    if (!all && pendingMonths.has(month)) {
+      if (!foldedShown.has(month)) {
+        foldedShown.add(month);
+        const info = summary.find((m) => m.month === month);
+        out.push(
+          padEnd(`${Number(month.slice(5))}月`, LABEL_W) +
+            c(C.dim, `受付開始前 ${info.days}日分（--all で全日表示）`),
+        );
+      }
+      continue;
+    }
     if (day.slots.length === 0) {
       if (!all) {
         skipped.push(day);

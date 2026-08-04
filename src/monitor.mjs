@@ -101,6 +101,45 @@ export function diff(previous, result, config) {
   return events;
 }
 
+// --- 静音時間帯の保留 --------------------------------------------------------
+//
+// 静音中のイベントをそのまま捨てると、「夜中に出た空きが朝もまだ空いている」
+// 場合に二度と通知されない（状態ファイルは更新済みなので、朝の走査では
+// 差分が出ない）。そこで保留リストを状態ファイルに積み、静音明けの走査で
+// まだ生きているものだけを合流させる。
+
+const pendingKey = (p) => `${p.type}|${p.date}|${p.from}-${p.to}`;
+
+/** イベントを保存できる形に落とす。lot-drop は情報提供なので持ち越さない。 */
+export function mergePending(pending = [], events = []) {
+  const map = new Map(pending.map((p) => [pendingKey(p), p]));
+  for (const e of events) {
+    if (e.type === 'lot-drop') continue;
+    const p = { type: e.type, date: e.day.date, from: e.slot.from, to: e.slot.to };
+    map.set(pendingKey(p), p);
+  }
+  return [...map.values()];
+}
+
+/**
+ * 保留イベントを現在の結果と突き合わせ、まだ意味のあるものだけを
+ * 通知用のイベント形に戻す。夜中に出た空きが朝までに埋まっていれば捨てる。
+ * フィルタも掛け直す（保留中に notifyOn を変えた場合、古い基準の
+ * イベントが素通りしないように）。
+ */
+export function reviveEvents(pending = [], result, config = {}) {
+  const filter = config.notifyOn ?? {};
+  const out = [];
+  for (const p of pending) {
+    const day = result.days.find((d) => d.date === p.date);
+    const slot = day?.slots.find((s) => s.from === p.from && s.to === p.to);
+    if (!slot || !matchesFilter(filter, day, slot)) continue;
+    if (p.type === 'vacant' && isBookable(slot)) out.push({ type: 'vacant', day, slot });
+    else if (p.type === 'lottery' && isLotteryOpen(slot)) out.push({ type: 'lottery', day, slot });
+  }
+  return out;
+}
+
 /**
  * 受付が月単位で開くと、コマ単位のイベントが一度に百件以上出る
  * （11月の抽選が9月1日に開く、など）。そのまま流すと通知が埋まるので、
