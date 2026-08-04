@@ -18,6 +18,7 @@ import {
   diff,
   changedDays,
   describeEvent,
+  summarizeEvents,
   inQuietHours,
 } from '../src/monitor.mjs';
 import { isBookable, isLotteryOpen } from '../src/model.mjs';
@@ -96,13 +97,22 @@ async function runOnce() {
     return;
   }
 
-  const head = lines.slice(0, 3).join('\n');
-  const more = lines.length > 3 ? `\nほか ${lines.length - 3} 件` : '';
+  // 受付が月単位で開くと一度に百件超えるので、多いときは要約に切り替える。
+  const BULK = 8;
+  const message =
+    events.length >= BULK
+      ? summarizeEvents(events, result.facility.name)
+      : {
+          title: `${result.facility.name} に空きが出ました`,
+          body: lines.join('\n'),
+        };
+
   const errors = await dispatch(config, {
-    title: `${result.facility.name} に空きが出ました`,
+    ...message,
     subtitle: `${events.length} 件の変化`,
-    body: head + more,
-    payload: { events: events.map((e) => ({ type: e.type, date: e.day.date, from: e.slot.from, to: e.slot.to })) },
+    payload: {
+      events: events.map((e) => ({ type: e.type, date: e.day.date, from: e.slot.from, to: e.slot.to })),
+    },
   });
   for (const err of errors) say(`通知失敗 ${err}`);
 }

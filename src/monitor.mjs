@@ -101,6 +101,51 @@ export function diff(previous, result, config) {
   return events;
 }
 
+/**
+ * 受付が月単位で開くと、コマ単位のイベントが一度に百件以上出る
+ * （11月の抽選が9月1日に開く、など）。そのまま流すと通知が埋まるので、
+ * 件数が多いときは月ごとにまとめた文面にする。
+ *
+ * @returns {{title: string, body: string}}
+ */
+export function summarizeEvents(events, facilityName) {
+  const byMonth = new Map();
+  for (const e of events) {
+    const key = `${e.day.date.slice(0, 7)}|${e.type}`;
+    if (!byMonth.has(key)) {
+      byMonth.set(key, { month: e.day.date.slice(0, 7), type: e.type, slots: 0, days: new Set() });
+    }
+    const g = byMonth.get(key);
+    g.slots++;
+    g.days.add(e.day.date);
+  }
+
+  const groups = [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month));
+  const lines = groups.map((g) => {
+    const month = `${Number(g.month.slice(5))}月`;
+    const scale = `${g.days.size}日分 ${g.slots}コマ`;
+    return g.type === 'lottery'
+      ? `${month} 抽選申込が開始（${scale}）`
+      : g.type === 'vacant'
+        ? `${month} 空きが出ました（${scale}）`
+        : `${month} ${scale}`;
+  });
+
+  // 抽選なら申込が少ない順、先着なら日付順に、動くべき候補を数件だけ添える。
+  const picks = [...events]
+    .sort(
+      (a, b) =>
+        a.slot.lotApplications - b.slot.lotApplications || a.day.date.localeCompare(b.day.date),
+    )
+    .slice(0, 5)
+    .map((e) => `  ${describeEvent(e)}`);
+
+  return {
+    title: `${facilityName} ${lines[0]}`,
+    body: [...lines, '', '狙い目:', ...picks].join('\n'),
+  };
+}
+
 export function describeEvent(e) {
   const when = `${e.day.date.slice(5).replace('-', '/')}(${weekdayJa(e.day.date)}) ${hhmm(
     e.slot.from,

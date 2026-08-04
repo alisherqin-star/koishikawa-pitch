@@ -254,8 +254,15 @@ export function renderHtml(result, { refreshSeconds = 0, live = false, fragment 
   const when = ({ d, s }) =>
     `<b>${d.date.slice(5).replace('-', '/')}</b><i>${weekdayJa(d.date)}</i>${hhmm(s.from)}–${hhmm(s.to)}`;
 
-  const rows = result.days
-    .map((day) => {
+  // まだ受付が始まっていない月は、日ごとに並べても押せるコマが1つも無い。
+  // 30行の斜線を出しても情報量が増えないので、1行にたたんで理由だけ書く。
+  const pendingMonths = new Set(
+    monthSummary(result.days)
+      .filter((m) => m.bookable === 0 && m.lottery === 0 && m.pending > 0)
+      .map((m) => m.month),
+  );
+
+  const renderDay = (day) => {
       const rest = day.weekday === 0 || day.weekday === 6 || day.isHoliday;
       const open = day.slots.some((s) => isBookable(s) || isLotteryOpen(s));
       const cls = [rest ? 'rest' : '', open ? 'open' : 'shut', day.weekday === 0 || day.isHoliday ? 'sun' : day.weekday === 6 ? 'sat' : '']
@@ -272,8 +279,25 @@ export function renderHtml(result, { refreshSeconds = 0, live = false, fragment 
         .replace('-', '/')}</b><i>${weekdayJa(day.date)}</i>${
         day.isHoliday ? '<u>祝</u>' : ''
       }</div><div class="strip">${segs}</div></div>`;
-    })
-    .join('\n');
+  };
+
+  const rows = [];
+  const seenPending = new Set();
+  for (const day of result.days) {
+    const month = day.date.slice(0, 7);
+    if (pendingMonths.has(month)) {
+      if (seenPending.has(month)) continue;
+      seenPending.add(month);
+      const info = monthSummary(result.days).find((m) => m.month === month);
+      rows.push(
+        `<div class="row folded"><div class="date"><b>${Number(month.slice(5))}月</b></div>` +
+          `<div class="fold">受付開始前 — ${info.days}日分 ${info.pending}コマが空いていますが、` +
+          `まだ申込めません。受付が始まると通知します。</div></div>`,
+      );
+      continue;
+    }
+    rows.push(renderDay(day));
+  }
 
   const head = fragment
     ? ''
@@ -405,7 +429,9 @@ ${refreshSeconds > 0 ? `<meta http-equiv="refresh" content="${refreshSeconds}">`
   .seg.lot { background:var(--lot-fill); color:var(--lot); }
   .seg.lot.cold { box-shadow:inset 0 0 0 1px var(--lot); }
 
-  body.f-rest .row:not(.rest) { display:none; }
+  .row.folded { background:var(--ground); }
+  .fold { display:flex; align-items:center; padding:10px 12px; font-size:12px; color:var(--muted); }
+  body.f-rest .row:not(.rest):not(.folded) { display:none; }
   body.f-open .row.shut { display:none; }
 
   footer { display:flex; flex-direction:column; gap:10px; font-size:12px; color:var(--muted); }
@@ -486,7 +512,7 @@ ${refreshSeconds > 0 ? `<meta http-equiv="refresh" content="${refreshSeconds}">`
           .map((s) => `<span>${esc(hhmm(s.from))}</span>`)
           .join('')}</div>
       </div>
-${rows}
+${rows.join('\n')}
     </div>
   </section>
 
