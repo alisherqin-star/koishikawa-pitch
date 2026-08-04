@@ -13,7 +13,15 @@ on:
   workflow_dispatch: # 手動実行ボタン
   push:
     branches: [main]
-    paths: ['src/**', 'bin/**', 'config.example.json', 'config.actions.json', 'actions-state.json']
+    # ワークフロー自身も含める。変更したのに検証実行が走らないと、
+    # 壊れていても次の定時実行まで気づけない。
+    paths:
+      - 'src/**'
+      - 'bin/**'
+      - 'config.example.json'
+      - 'config.actions.json'
+      - 'actions-state.json'
+      - '.github/workflows/update-page.yml'
 
 permissions:
   contents: write
