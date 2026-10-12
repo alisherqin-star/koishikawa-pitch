@@ -81,6 +81,7 @@
   #call { font-family: var(--display); font-weight: 800; font-size: 20px; color: var(--accent); }
   footer { font-size: 12px; color: var(--muted); line-height: 1.6; }
   footer a { color: var(--good); }
+  #credits { font-size: 11px; }
   @media (max-width: 560px) {
     h1 { font-size: 22px; }
     .board b { font-size: 21px; }
@@ -100,6 +101,7 @@
       <button id="lv-normal" data-lv="normal" aria-pressed="true">标准</button>
       <button id="lv-osim" data-lv="osim" aria-pressed="false">奥西姆</button>
       <button id="lang" title="中文 / 日本語">日本語</button>
+      <button id="voice" aria-pressed="false" title="AI 语音 / 音声">语音</button>
       <button id="sound" aria-pressed="true" aria-label="sound">♪</button>
     </div>
   </header>
@@ -127,6 +129,7 @@
   <div class="rule" id="rulebar"></div>
 
   <footer id="t-foot"></footer>
+  <footer id="credits" hidden></footer>
 </div>
 
 <script>
@@ -137,7 +140,7 @@
   const STR = {
     zh: {
       title: '奥西姆训练场', score: '得分', combo: '连续传球', lives: '机会', best: '最高',
-      lv: { easy: '入门', normal: '标准', osim: '奥西姆' }, langBtn: '日本語', me: '你',
+      lv: { easy: '入门', normal: '标准', osim: '奥西姆' }, langBtn: '日本語', voiceBtn: '语音', voiceNo: '这个浏览器不支持语音', me: '你',
       mode: { multi: '多色传球', call: '传球训练', rondo: 'Rondo 抢圈' },
       colors: { R: '红', B: '蓝', Y: '黄', P: '紫', W: '白' },
       names: ['你', '梅西', 'C罗', '姆巴佩', '哈兰德', '莫德里奇', '德布劳内', '内马尔', '贝林厄姆'],
@@ -158,7 +161,7 @@
         ],
         rondo: [
           '和传球训练一样站圈、传球、喊名字，只是圈中间多了一个逼抢的人。',
-          '他也听得见你喊的名字，会去封接球人到那个人的线路，所以要喊线路没被封住的人。',
+          '他会去逼接球的人。喊名字时要看清他往哪跑，喊一个他封不到的人；持球太久会被抢走。',
           '你传错人、持球太久、被断或被抢，都会丢一次机会，共 3 次。你一直留在圈上。',
           '队友丢球时，他和逼抢的人换位：逼抢的人站到圈上，丢球的人进圈。',
           '没球时可以点圈附近挪位置，给持球人让出线路。'
@@ -178,7 +181,7 @@
         ring: { easy: '传给被喊的人，再喊下一个', normal: '传给被喊的人，再喊下一个', osim: '不能喊旁边的人 · 名字只闪一下' }
       },
       tipOff: '跑到空当，等队友传给你',
-      passTo: '传给', free: '随便传', unknown: '？刚才喊的是谁', pickFirst: '先点接球人，再点要喊的名字',
+      pickFirst: '先点接球人，再点要喊的名字',
       picked: n => `接球人：${n} → 再点要喊的名字`, nextYou: '下一脚传给你！准备', listen: '听名字，看清楚球会去哪',
       tipRing: '没球时可以点圈附近挪位置',
       callLbl: '教练：', callTo: c => `下一脚 → ${c}！`,
@@ -187,11 +190,12 @@
       mateFault: { cut: '队友被断', tackle: '队友被抢', slow: '队友拖太久' },
       swap: '换人', goodCall: '喊得好',
       oneTouch: '一脚！', callOk: '指示达成',
+      photoCredit: '头像照片来自维基共享资源：',
       foot: '规则源自伊维察·奥西姆执教千叶和日本国家队时的训练：用多色背心限制传球对象，传球时喊出下一个人的名字，逼球员在接球前就看好下一脚。<a href="./">← 小石川运动场空场情况</a>'
     },
     ja: {
       title: 'オシム式トレーニング', score: 'スコア', combo: '連続パス', lives: '残り', best: 'ベスト',
-      lv: { easy: '入門', normal: '標準', osim: 'オシム' }, langBtn: '中文', me: '自分',
+      lv: { easy: '入門', normal: '標準', osim: 'オシム' }, langBtn: '中文', voiceBtn: '音声', voiceNo: 'このブラウザは音声に対応していません', me: '自分',
       mode: { multi: '多色パス', call: 'パス練習', rondo: 'ロンド（鳥かご）' },
       colors: { R: '赤', B: '青', Y: '黄', P: '紫', W: '白' },
       names: ['キミ', 'メッシ', 'ロナウド', 'エムバペ', 'ハーランド', 'モドリッチ', 'デブライネ', 'ネイマール', 'ベリンガム'],
@@ -212,7 +216,7 @@
         ],
         rondo: [
           'パス練習と同じく円でパスを回して名前を叫ぶ。ただし真ん中に鬼が1人入る。',
-          '鬼も叫んだ名前を聞いていて、受け手からその選手へのコースを切りに行く。コースが空いている選手を呼ぶこと。',
+          '鬼は受け手に寄せていく。鬼の動きを見て、コースを切られない選手の名前を呼ぶこと。持ちすぎると奪われる。',
           'パス先を間違える・持ちすぎ・カット・奪われたら1つ失う（3回まで）。自分はずっと円の上にいる。',
           '味方が奪われたら、その味方と鬼が入れ替わる。',
           'ボールがないときは、円の近くをタップして位置をずらし、パスコースを作れる。'
@@ -232,7 +236,7 @@
         ring: { easy: '呼ばれた選手へ出して、次を叫ぶ', normal: '呼ばれた選手へ出して、次を叫ぶ', osim: '隣は呼べない · 名前は一瞬だけ' }
       },
       tipOff: '空いている所へ動いて、パスを引き出す',
-      passTo: 'パス先', free: '誰でもいい', unknown: '？さっき誰が呼ばれた', pickFirst: '受け手をタップ → 叫ぶ名前をタップ',
+      pickFirst: '受け手をタップ → 叫ぶ名前をタップ',
       picked: n => `受け手：${n} → 叫ぶ名前をタップ`, nextYou: '次は自分に来る！準備', listen: '名前を聞いて、ボールの行き先を読む',
       tipRing: 'ボールがないときは円の近くをタップして動ける',
       callLbl: 'コーチ：', callTo: c => `次は ${c}！`,
@@ -241,6 +245,7 @@
       mateFault: { cut: '味方がカットされた', tackle: '味方が奪われた', slow: '味方が持ちすぎ' },
       swap: '交代', goodCall: 'いいコール',
       oneTouch: 'ダイレクト！', callOk: 'コール成功',
+      photoCredit: '顔写真はウィキメディア・コモンズより：',
       foot: 'イビチャ・オシムが千葉や日本代表で使った練習がもと。多色ビブスでパス先を縛り、パスと同時に次の選手の名前を叫ぶ。受ける前に次を見る習慣をつける。<a href="./">← 小石川運動場の空き状況</a>'
     }
   };
@@ -254,7 +259,7 @@
   ];
 
   // 每个练习 × 难度的参数。df: 防守速度，aiHold: 队友持球时间，feed: 队友传给（或喊）你的概率，
-  // n: 圈上人数，noNb: 不能喊接球人旁边的人，bubble: 喊名字显示几秒，showNeed: 规则栏里写出该传给谁，
+  // n: 圈上人数，noNb: 不能喊接球人旁边的人，bubble: 喊名字显示几秒，
   // aiMax: Rondo 里线路被封时队友最多等多久，err: 队友不看线路乱喊的概率
   const CFG = {
     multi: {
@@ -263,14 +268,14 @@
       osim:   { colors: 5, per: 3, defs: 3, touch: 1.9, minTouch: 1.1, back: true,  calls: true,  hints: false, df: 135, aiHold: [0.3, 0.7], feed: 0.45, lives: 3 }
     },
     call: {
-      easy:   { n: 5, defs: 0, touch: 4.0, minTouch: 3.0, aiHold: [0.8, 1.1], feed: 0.45, hints: true,  noNb: false, shuffle: false, bubble: 1.8, showNeed: true,  lives: 3 },
-      normal: { n: 6, defs: 0, touch: 3.0, minTouch: 2.0, aiHold: [0.55, 0.85], feed: 0.4, hints: false, noNb: false, shuffle: false, bubble: 1.3, showNeed: true,  lives: 3 },
-      osim:   { n: 6, defs: 0, touch: 2.4, minTouch: 1.6, aiHold: [0.4, 0.65], feed: 0.4, hints: false, noNb: true,  shuffle: true,  bubble: 0.8, showNeed: false, lives: 3 }
+      easy:   { n: 5, defs: 0, touch: 4.0, minTouch: 3.0, aiHold: [0.8, 1.1], feed: 0.45, hints: true,  noNb: false, shuffle: false, bubble: 1.8,  lives: 3 },
+      normal: { n: 6, defs: 0, touch: 3.0, minTouch: 2.0, aiHold: [0.55, 0.85], feed: 0.4, hints: false, noNb: false, shuffle: false, bubble: 1.3,  lives: 3 },
+      osim:   { n: 6, defs: 0, touch: 2.4, minTouch: 1.6, aiHold: [0.4, 0.65], feed: 0.4, hints: false, noNb: true,  shuffle: true,  bubble: 0.8, lives: 3 }
     },
     rondo: {
-      easy:   { n: 6, defs: 1, df: 90,  touch: 4.0, minTouch: 3.0, aiHold: [0.6, 0.9],  aiMax: 1.6, feed: 0.45, hints: true,  noNb: false, bubble: 1.8, showNeed: true,  err: 0.3,  lives: 3 },
-      normal: { n: 6, defs: 1, df: 115, touch: 3.0, minTouch: 2.2, aiHold: [0.45, 0.75], aiMax: 1.4, feed: 0.4, hints: false, noNb: false, bubble: 1.3, showNeed: true,  err: 0.2,  lives: 3 },
-      osim:   { n: 6, defs: 1, df: 135, touch: 2.4, minTouch: 1.8, aiHold: [0.3, 0.6],  aiMax: 1.2, feed: 0.4, hints: false, noNb: true,  bubble: 0.8, showNeed: false, err: 0.12, lives: 3 }
+      easy:   { n: 6, defs: 1, df: 90,  touch: 4.0, minTouch: 3.0, aiHold: [0.6, 0.9],  aiMax: 1.6, feed: 0.45, hints: true,  noNb: false, bubble: 1.8,  err: 0.3,  lives: 3 },
+      normal: { n: 6, defs: 1, df: 115, touch: 3.0, minTouch: 2.2, aiHold: [0.45, 0.75], aiMax: 1.4, feed: 0.5, hints: false, noNb: false, bubble: 1.3,  err: 0.2,  lives: 3 },
+      osim:   { n: 6, defs: 1, df: 135, touch: 2.4, minTouch: 1.8, aiHold: [0.3, 0.6],  aiMax: 1.2, feed: 0.5, hints: false, noNb: true,  bubble: 0.8, err: 0.12, lives: 3 }
     }
   };
 
@@ -288,6 +293,7 @@
   let level = store.get('level', 'normal');
   if (!CFG.multi[level]) level = 'normal';
   let soundOn = store.get('sound', true);
+  let voiceOn = store.get('voice', false);
   const T = () => STR[lang];
   const bestKey = () => `best.${mode}.${level}`;
   const isRing = () => mode !== 'multi';
@@ -367,6 +373,23 @@
     call: () => beep(990, 0.12, 'triangle', 0.06)
   };
 
+  // ---------- AI 语音：用浏览器自带的语音合成念出喊的名字 ----------
+  const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  function speak(text, primer) {
+    if (!canSpeak || !voiceOn) return;
+    try {
+      const synth = window.speechSynthesis;
+      synth.cancel(); // 只念最新的一句，免得和画面对不上
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang === 'ja' ? 'ja-JP' : 'zh-CN';
+      const v = synth.getVoices().find(x => x.lang && x.lang.replace('_', '-').startsWith(u.lang.slice(0, 2)));
+      if (v) u.voice = v;
+      u.rate = 1.25;
+      if (primer) u.volume = 0; // 手机浏览器要在点击里先念一次才肯出声
+      synth.speak(u);
+    } catch { /* ignore */ }
+  }
+
   // ---------- 游戏状态 ----------
   let state = null;
   let nextId = 0;
@@ -415,6 +438,79 @@
   }
 
   const nameOf = p => T().names[p.ni] || '?';
+
+  // ---------- 球员头像 ----------
+  // 从维基百科取条目主图（自由许可的照片），在浏览器里裁成圆形头像，并在页脚注明作者和许可证。
+  // 取不到（离线、被拦截）就退回名字首字。
+  const WIKI = ['', 'Lionel_Messi', 'Cristiano_Ronaldo', 'Kylian_Mbappé', 'Erling_Haaland', 'Luka_Modrić',
+                'Kevin_De_Bruyne', 'Neymar', 'Jude_Bellingham'];
+  const R_FACE = 21;
+  const avatars = [];
+  const credits = [];
+
+  function cropFace(img, box) {
+    const w = img.naturalWidth, h = img.naturalHeight, c = document.createElement('canvas');
+    c.width = c.height = 96;
+    let side, cx, cy;
+    if (box) {
+      side = Math.min(w, h, box.width * 1.7); cx = box.x + box.width / 2; cy = box.y + box.height * 0.48;
+    } else if (h >= w) {
+      // 竖构图：脸一般在上部居中
+      side = w * 0.6; cx = w / 2; cy = h * 0.27;
+    } else {
+      side = h * 0.62; cx = w / 2; cy = h * 0.33;
+    }
+    const sx = clamp(cx - side / 2, 0, w - side), sy = clamp(cy - side / 2, 0, h - side);
+    c.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, 96, 96);
+    return c;
+  }
+
+  async function loadAvatar(i) {
+    const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(WIKI[i]));
+    if (!res.ok) return;
+    const data = await res.json();
+    const src = data.thumbnail && data.thumbnail.source;
+    if (!src) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = src.replace(/\/(\d+)px-/, '/400px-');
+    await img.decode();
+    let box = null;
+    try {
+      if ('FaceDetector' in window) {
+        const faces = await new window.FaceDetector({ maxDetectedFaces: 1 }).detect(img);
+        if (faces[0]) box = faces[0].boundingBox;
+      }
+    } catch { /* 不支持就用经验位置 */ }
+    avatars[i] = cropFace(img, box);
+    // 许可信息
+    const orig = (data.originalimage && data.originalimage.source) || src;
+    const parts = orig.split('/');
+    const file = decodeURIComponent(parts.includes('thumb') ? parts[parts.length - 2] : parts[parts.length - 1]);
+    const meta = await fetch('https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=extmetadata&format=json&origin=*&titles=' +
+      encodeURIComponent('File:' + file)).then(r => r.json());
+    const page = Object.values(meta.query.pages)[0];
+    const ext = page.imageinfo ? page.imageinfo[0].extmetadata : {};
+    const strip = h => { const d = document.createElement('div'); d.innerHTML = h || ''; return d.textContent.trim(); };
+    credits[i] = { file, artist: strip(ext.Artist && ext.Artist.value), license: strip(ext.LicenseShortName && ext.LicenseShortName.value) };
+    renderCredits();
+  }
+
+  function renderCredits() {
+    const t = T(), el = document.getElementById('credits');
+    const rows = [];
+    credits.forEach((c, i) => {
+      if (!c) return;
+      const link = 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(c.file);
+      rows.push(`${t.names[i]}：<a href="${link}" target="_blank" rel="noopener">${c.artist || 'Wikimedia Commons'}</a>${c.license ? '，' + c.license : ''}`);
+    });
+    el.hidden = !rows.length;
+    el.innerHTML = rows.length ? `${t.photoCredit}${rows.join(' · ')}` : '';
+  }
+
+  function loadAvatars() {
+    for (let i = 1; i < WIKI.length; i++) loadAvatar(i).catch(() => { /* 退回名字首字 */ });
+  }
 
   function retarget(p) {
     p.tx = rand(M + 20, W - M - 20);
@@ -471,6 +567,7 @@
     s.call = pickOne(opts);
     s.nextCallIn = 3 + Math.floor(Math.random() * 4);
     sfx.call();
+    speak(T().callTo(T().colors[BIBS[s.call].k]));
   }
 
   function faultReason(target) {
@@ -493,10 +590,10 @@
   }
 
   // 传球线路的安全余量：>0 表示防守来不及断
-  function laneSafety(a, b) {
+  function laneSafety(a, b, defs) {
     const s = state, len = dist(a, b);
     let m = Infinity;
-    for (const d of s.defs) {
+    for (const d of defs || s.defs) {
       const { d: dd, t } = segDist(d, a, b);
       const spd = s.L.df * 1.15;
       m = Math.min(m, dd - (R_P + R_BALL) - spd * (t * len / BALL_SPEED) * 0.9);
@@ -527,7 +624,7 @@
     to.vx = to.vy = 0;
     if (s.ring) {
       s.nextFor = call || null; s.nextBy = from;
-      if (call) { bubble(from, nameOf(call) + '！'); sfx.shout(); }
+      if (call) { bubble(from, nameOf(call) + '！'); sfx.shout(); speak(nameOf(call)); }
     }
     sfx.kick();
     renderRule();
@@ -574,11 +671,17 @@
     if (!cands.length) cands = s.mates.filter(m => m !== target);
     let call;
     if (s.defs.length && Math.random() >= (s.L.err || 0)) {
-      const ok = cands.filter(m => laneSafety(target, m) > 10);
+      // 预判逼抢的人：他会朝接球人跑，等接球人出球时大概跑到哪
+      const flight = dist(h, target) / BALL_SPEED + 0.35;
+      const predicted = s.defs.map(d => {
+        const dd = dist(d, target), step = Math.min(dd - R_P * 2, s.L.df * flight);
+        return dd > 1 ? { x: d.x + (target.x - d.x) / dd * Math.max(0, step), y: d.y + (target.y - d.y) / dd * Math.max(0, step) } : d;
+      });
+      const ok = cands.filter(m => laneSafety(target, m, predicted) > 18);
       if (ok.length) cands = ok;
     }
     const meCand = cands.includes(me);
-    if (meCand && Math.random() < s.L.feed + 0.12 * s.sinceMe) call = me;
+    if (meCand && Math.random() < s.L.feed + 0.2 * s.sinceMe) call = me;
     else call = pickOne(cands.filter(m => !m.isMe).length ? cands.filter(m => !m.isMe) : cands);
     s.sinceMe = call === me ? 0 : s.sinceMe + 1;
     pass(h, target, false, call);
@@ -774,10 +877,9 @@
       const b = s.ball;
       if (b.moving) {
         const to = b.to, near = segDist(d, b, to);
-        if (ring && s.nextFor && near.d > 110) {
-          // 断不到这一脚，就听名字去封下一条线路
-          const nf = s.nextFor;
-          tx = to.x + (nf.x - to.x) * 0.3; ty = to.y + (nf.y - to.y) * 0.3;
+        if (ring && near.d > 90) {
+          // 断不到这一脚，就去逼接球的人
+          tx = to.x; ty = to.y;
         } else {
           // 追向传球路线上的前方点
           const tt = Math.max(near.t, 0.25);
@@ -785,10 +887,8 @@
           spd *= 1.15;
         }
       } else if (s.holder && ring) {
-        // 先封被喊的线路，持球越久越往人身上逼
-        const h = s.holder, nf = s.nextFor || h, k = Math.min(1, s.holdT / 1.0);
-        const lx = h.x + (nf.x - h.x) * 0.3, ly = h.y + (nf.y - h.y) * 0.3;
-        tx = lx + (h.x - lx) * k; ty = ly + (h.y - ly) * k;
+        // 直接逼持球人，持球越久逼得越快
+        tx = s.holder.x; ty = s.holder.y;
         spd *= 0.9 + Math.min(s.holdT, 2) * 0.2;
       } else if (s.holder && d.role === 'press') {
         tx = s.holder.x; ty = s.holder.y;
@@ -914,19 +1014,31 @@
     ctx.globalAlpha = alpha;
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 6, R_P, R_P * 0.7, 0, 0, TAU); ctx.fill();
+    const face = s.ring && !p.isMe ? avatars[p.ni] : null;
+    const r = face ? R_FACE : R_P;
     ctx.fillStyle = def ? '#141414' : bib.fill; ctx.strokeStyle = def ? '#3b3b3b' : bib.edge; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(p.x, p.y, R_P, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
+    if (face) {
+      ctx.save(); ctx.clip();
+      ctx.drawImage(face, p.x - r, p.y - r, r * 2, r * 2);
+      ctx.restore();
+      // 逼抢的人用黑色粗边框区分
+      ctx.lineWidth = def ? 5 : 3;
+    }
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     if (s.ring) {
-      // 站圈模式：圆里写名字首字，下方写全名
+      // 站圈模式：有头像画头像，没有就写名字首字；下方写全名
       const name = nameOf(p);
-      ctx.fillStyle = def ? '#c9c9c9' : '#111';
-      ctx.font = '800 15px ' + FONT;
-      ctx.fillText(name.slice(0, 1), p.x, p.y + 1);
+      if (!face) {
+        ctx.fillStyle = def ? '#c9c9c9' : '#111';
+        ctx.font = '800 15px ' + FONT;
+        ctx.fillText(name.slice(0, 1), p.x, p.y + 1);
+      }
       if (!p.isMe) {
         ctx.font = '700 13px ' + FONT;
         ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-        ctx.strokeText(name, p.x, p.y + R_P + 12); ctx.fillStyle = '#ffffff'; ctx.fillText(name, p.x, p.y + R_P + 12);
+        ctx.strokeText(name, p.x, p.y + r + 12); ctx.fillStyle = '#ffffff'; ctx.fillText(name, p.x, p.y + r + 12);
       }
     } else {
       ctx.fillStyle = def ? '#9a9a9a' : '#111';
@@ -985,10 +1097,6 @@
         dashed(me, s.queued.a, 'rgba(245,197,24,0.85)', [3, 6]);
         dashed(s.queued.a, s.queued.b, 'rgba(245,197,24,0.4)', [2, 6]);
         ringAround(s.queued.a, 'rgba(245,197,24,0.9)');
-      }
-      // 入门提示：该传给谁
-      if (s.L.hints && s.nextFor && meCanAim && s.nextFor !== me) {
-        ringAround(s.nextFor, '#5fd68b', 12 + Math.sin(now / 140) * 2, 2.5);
       }
     } else {
       if (s.queued && b.moving) {
@@ -1064,7 +1172,7 @@
     $('combo').textContent = s ? s.combo : 0;
     const n = s ? Math.max(0, s.lives) : 3;
     $('t-lives').textContent = t.lives;
-    lives.textContent = '●'.repeat(n) + '○'.repeat(3 - n);
+    lives.textContent = '●'.repeat(n) + '○'.repeat(Math.max(0, 3 - n));
     $('best').textContent = store.get(bestKey(), 0);
   }
 
@@ -1072,7 +1180,6 @@
     const b = BIBS[c];
     return `<span class="chip${no ? ' no' : ''}" style="background:${b.fill}">${T().colors[b.k]}</span>`;
   }
-  const nameChip = p => `<span class="chip" style="background:#3d8bff">${nameOf(p)}</span>`;
   const ruleText = () => T().ruleText[isRing() ? 'ring' : 'multi'][level];
 
   function renderRule() {
@@ -1082,10 +1189,7 @@
     if (s.ring) {
       let html;
       if (s.holder === me || (s.ball.moving && s.ball.to === me)) {
-        const need = s.nextFor;
-        const needHtml = need ? (s.L.showNeed ? nameChip(need) : `<span class="warn">${t.unknown}</span>`) : `<span class="tip">${t.free}</span>`;
-        html = `<span class="lbl">${t.passTo}</span>${needHtml}` +
-          `<span class="tip">${s.sel ? t.picked(nameOf(s.sel)) : t.pickFirst}</span>`;
+        html = `<span class="tip">${s.sel ? t.picked(nameOf(s.sel)) : t.pickFirst}</span>`;
       } else if (s.nextFor === me && s.ball.moving) html = `<span class="warn">${t.nextYou}</span>`;
       else html = `<span class="tip">${t.listen}</span>` + (s.mode === 'rondo' ? `<span class="lbl">${t.tipRing}</span>` : '');
       bar.innerHTML = html + `<span class="lbl">${ruleText()}</span>`;
@@ -1135,6 +1239,7 @@
   function start() {
     $('overlay').hidden = true;
     try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch { /* ignore */ }
+    speak(' ', true);
     newGame();
   }
 
@@ -1218,7 +1323,10 @@
     for (const k of Object.keys(CFG.multi)) $('lv-' + k).textContent = t.lv[k];
     for (const k of Object.keys(CFG)) $('md-' + k).querySelector('b').textContent = t.mode[k];
     $('lang').textContent = t.langBtn;
+    $('voice').textContent = t.voiceBtn;
+    if (!canSpeak) $('voice').title = t.voiceNo;
     $('t-foot').innerHTML = t.foot;
+    renderCredits();
     updateHud();
     renderRule();
     if (!$('overlay').hidden) showCard(state && state.over ? 'over' : 'intro');
@@ -1242,6 +1350,14 @@
     $('sound').setAttribute('aria-pressed', String(soundOn));
   });
   $('sound').setAttribute('aria-pressed', String(soundOn));
+  $('voice').addEventListener('click', () => {
+    voiceOn = canSpeak && !voiceOn; store.set('voice', voiceOn);
+    $('voice').setAttribute('aria-pressed', String(voiceOn));
+    if (voiceOn) speak(nameOf({ ni: 1 }));
+    else if (canSpeak) window.speechSynthesis.cancel();
+  });
+  if (!canSpeak) { voiceOn = false; $('voice').disabled = true; }
+  $('voice').setAttribute('aria-pressed', String(voiceOn));
 
   // ---------- 主循环 ----------
   let last = performance.now();
@@ -1257,6 +1373,7 @@
   resize();
   applyChoice();
   applyLang();
+  loadAvatars();
   showCard('intro');
   requestAnimationFrame(frame);
 })();
