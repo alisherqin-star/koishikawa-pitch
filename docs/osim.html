@@ -106,8 +106,8 @@
 
   <nav class="modes">
     <button id="md-multi" data-mode="multi" aria-pressed="true"><b>多色传球</b><span>MULTI-COLOUR</span></button>
-    <button id="md-pass" data-mode="pass" aria-pressed="false"><b>传球训练</b><span>PASS &amp; GO</span></button>
-    <button id="md-rondo" data-mode="rondo" aria-pressed="false"><b>Rondo</b><span>RONDO 6v2</span></button>
+    <button id="md-call" data-mode="call" aria-pressed="false"><b>传球训练</b><span>CALL &amp; PASS</span></button>
+    <button id="md-rondo" data-mode="rondo" aria-pressed="false"><b>Rondo</b><span>RONDO 6+1</span></button>
   </nav>
 
   <div class="board" aria-live="polite">
@@ -136,10 +136,11 @@
   // ---------- 文案 ----------
   const STR = {
     zh: {
-      title: '奥西姆训练场', score: '得分', combo: '连续传球', lives: '机会', time: '时间', best: '最高',
+      title: '奥西姆训练场', score: '得分', combo: '连续传球', lives: '机会', best: '最高',
       lv: { easy: '入门', normal: '标准', osim: '奥西姆' }, langBtn: '日本語', me: '你',
-      mode: { multi: '多色传球', pass: '传球训练', rondo: 'Rondo 抢圈' },
+      mode: { multi: '多色传球', call: '传球训练', rondo: 'Rondo 抢圈' },
       colors: { R: '红', B: '蓝', Y: '黄', P: '紫', W: '白' },
+      names: ['你', '梅西', 'C罗', '姆巴佩', '哈兰德', '莫德里奇', '德布劳内', '内马尔', '贝林厄姆'],
       intro: {
         multi: [
           '你是头上标着「你」的那名红衣球员，整局都是你。其他队友会自己传球。',
@@ -148,44 +149,52 @@
           '不能传给同色；标准难度起也不能传回刚传给你的颜色；奥西姆难度要听教练喊色。',
           '你持球太久、违规、被断都会丢一次机会，共 3 次。队友失误只会打断连续传球。'
         ],
-        pass: [
-          '奥西姆常说「边想边跑」。这里每一脚传完都要马上跑。',
-          '你传给 A 后，场上会亮起黄圈。A 传给第三人 B，B 再把球传进黄圈。',
-          '在球到之前跑进黄圈，就能接到第三人的回传；没跑到就丢一次机会。',
-          'A、B 也要守颜色规则，回到你脚下的那一脚同样计入规则，想清楚再传。',
-          '你违规、持球太久、被断都会丢一次机会，共 3 次。'
+        call: [
+          '几个人站成一圈，你是标着「你」的红衣球员，整局都是你。',
+          '传球时要喊出接球人下一脚传给谁：先点接球人，再点要喊的名字，球就传出去了。',
+          '别人喊到谁，接球的人就必须传给谁。球传到你脚下时，你也只能传给喊给你的那个人。',
+          '球还在路上时就可以先点好接球人和名字，接到后一脚出球，加分更多。',
+          '传错人、持球太久都会丢一次机会，共 3 次。奥西姆难度：不能喊接球人旁边的人，名字只闪一下，圈上的人还会换位置。'
         ],
         rondo: [
-          '6 人在圈上，2 人在圈里抢。你是圈上的一员，只能沿着圈线移动：点圈附近任意位置就能跑过去。',
-          '颜色规则照旧，限时 90 秒，尽量多传、少丢。',
-          '你违规、持球太久、被断或被抢，就要进圈当防守。',
-          '进圈后点场地跑过去：碰到传球或贴住持球人就能抢回来，回到圈上，抢断加 30 分。',
-          '队友丢球时也会和抢到球的人换位。'
+          '和传球训练一样站圈、传球、喊名字，只是圈中间多了一个逼抢的人。',
+          '他也听得见你喊的名字，会去封接球人到那个人的线路，所以要喊线路没被封住的人。',
+          '你传错人、持球太久、被断或被抢，都会丢一次机会，共 3 次。你一直留在圈上。',
+          '队友丢球时，他和逼抢的人换位：逼抢的人站到圈上，丢球的人进圈。',
+          '没球时可以点圈附近挪位置，给持球人让出线路。'
         ]
       },
-      controls: '操作：点队友传球 · 点空地跑位 · 球在路上点队友＝一脚出球',
+      controls: {
+        multi: '操作：点队友传球 · 点空地跑位 · 球在路上点队友＝一脚出球',
+        ring: '操作：先点接球人，再点要喊的名字 · 球在路上就点好＝一脚出球'
+      },
       start: '开始训练', again: '再来一次',
       overH: '训练结束', overStat: (s, p, b) => `得分 ${s} · 最长连续 ${p} 脚 · 最高 ${b}`,
-      overMore: (st, rondo) => `你传了 ${st.myPasses} 脚 · 触球 ${st.touches} 次` +
-        (rondo ? ` · 抢断 ${st.steals} 次 · 进圈 ${st.inMiddle} 次` : ''),
+      overMore: st => `你传了 ${st.myPasses} 脚 · 触球 ${st.touches} 次`,
       newBest: '新纪录！',
       ruleLbl: '你持球', noLbl: '不能传给',
-      ruleText: { easy: '异色传球', normal: '异色 + 不回传上一色', osim: '异色 + 不回传上一色 + 听教练喊色' },
-      tipOff: { multi: '跑到空当，等队友传给你', pass: '等球回到你脚下', rondo: '沿圈移动，给持球人一条线路' },
-      tipRun: '跑进黄圈！第三人会把球传进去', tipIn: '你在圈里！去抢球就能出去',
+      ruleText: {
+        multi: { easy: '异色传球', normal: '异色 + 不回传上一色', osim: '异色 + 不回传上一色 + 听教练喊色' },
+        ring: { easy: '传给被喊的人，再喊下一个', normal: '传给被喊的人，再喊下一个', osim: '不能喊旁边的人 · 名字只闪一下' }
+      },
+      tipOff: '跑到空当，等队友传给你',
+      passTo: '传给', free: '随便传', unknown: '？刚才喊的是谁', pickFirst: '先点接球人，再点要喊的名字',
+      picked: n => `接球人：${n} → 再点要喊的名字`, nextYou: '下一脚传给你！准备', listen: '听名字，看清楚球会去哪',
+      tipRing: '没球时可以点圈附近挪位置',
       callLbl: '教练：', callTo: c => `下一脚 → ${c}！`,
       fault: { same: '同色传球！', back: '传回了上一个颜色！', call: '没听教练的指示！', slow: '持球太久！',
-               cut: '被断球！', tackle: '被抢走了！', late: '没跑到位！' },
+               cut: '被断球！', tackle: '被抢走了！', wrong: '传错人！', neighbor: '喊了旁边的人！' },
       mateFault: { cut: '队友被断', tackle: '队友被抢', slow: '队友拖太久' },
-      goIn: '进圈', swap: '换人', steal: '抢断成功！',
-      oneTouch: '一脚！', callOk: '指示达成', third: '第三人！',
-      foot: '规则源自伊维察·奥西姆执教千叶和日本国家队时的训练：用多色背心限制传球对象，传完就跑、找第三人，逼球员在接球前就看好下一脚。<a href="./">← 小石川运动场空场情况</a>'
+      swap: '换人', goodCall: '喊得好',
+      oneTouch: '一脚！', callOk: '指示达成',
+      foot: '规则源自伊维察·奥西姆执教千叶和日本国家队时的训练：用多色背心限制传球对象，传球时喊出下一个人的名字，逼球员在接球前就看好下一脚。<a href="./">← 小石川运动场空场情况</a>'
     },
     ja: {
-      title: 'オシム式トレーニング', score: 'スコア', combo: '連続パス', lives: '残り', time: '時間', best: 'ベスト',
+      title: 'オシム式トレーニング', score: 'スコア', combo: '連続パス', lives: '残り', best: 'ベスト',
       lv: { easy: '入門', normal: '標準', osim: 'オシム' }, langBtn: '中文', me: '自分',
-      mode: { multi: '多色パス', pass: 'パス&ゴー', rondo: 'ロンド（鳥かご）' },
+      mode: { multi: '多色パス', call: 'パス練習', rondo: 'ロンド（鳥かご）' },
       colors: { R: '赤', B: '青', Y: '黄', P: '紫', W: '白' },
+      names: ['キミ', 'メッシ', 'ロナウド', 'エムバペ', 'ハーランド', 'モドリッチ', 'デブライネ', 'ネイマール', 'ベリンガム'],
       intro: {
         multi: [
           '頭に「自分」と出ている赤ビブスがあなた。最後まで同じ選手をプレーする。ほかの味方は自分たちでパスを回す。',
@@ -194,38 +203,45 @@
           '同じ色にはパスできない。標準からは直前にくれた色にも返せない。オシムではコーチのコールに従う。',
           '持ちすぎ・反則・カットで1つ失う（3回まで）。味方のミスは連続パスが切れるだけ。'
         ],
-        pass: [
-          'オシムの口ぐせは「考えて走れ」。ここではパスを出したらすぐ走る。',
-          'A にパスすると黄色い円が出る。A が3人目の B へ、B が円の中へパスを出す。',
-          'ボールが届く前に円に入れば3人目からのリターンを受けられる。間に合わなければ1つ失う。',
-          'A と B も色のルールを守る。自分に戻ってくる1本もルールに入るので、よく考えて出す。',
-          '反則・持ちすぎ・カットで1つ失う（3回まで）。'
+        call: [
+          '円になって立つ。頭に「自分」と出ている赤ビブスがあなたで、最後まで同じ選手をプレーする。',
+          'パスを出すときに、受け手が次に出す相手の名前を叫ぶ。まず受け手をタップし、続けて叫ぶ名前の選手をタップするとパスが出る。',
+          '名前を呼ばれた選手に必ずパスする。自分にボールが来たら、自分に向けて叫ばれた選手にしか出せない。',
+          'ボールが転がっている間に受け手と名前を選んでおけば、受けた瞬間にダイレクトで出せて高得点。',
+          'パス先を間違える・持ちすぎで1つ失う（3回まで）。オシム：受け手の隣は呼べない、名前は一瞬しか出ない、円の選手が入れ替わる。'
         ],
         rondo: [
-          '円の上に6人、中に守備が2人。あなたは円の上の1人で、円の線に沿ってだけ動ける。円の近くをタップするとそこへ走る。',
-          '色のルールはそのまま。制限時間は90秒。たくさん回して、奪われないように。',
-          '反則・持ちすぎ・カット・奪われたら、あなたが中に入って守備をする。',
-          '中ではタップした場所へ走る。パスに触るか、持っている選手に寄せきれば奪い返して円に戻れる。奪うと +30。',
-          '味方が奪われたときも、奪った選手と入れ替わる。'
+          'パス練習と同じく円でパスを回して名前を叫ぶ。ただし真ん中に鬼が1人入る。',
+          '鬼も叫んだ名前を聞いていて、受け手からその選手へのコースを切りに行く。コースが空いている選手を呼ぶこと。',
+          'パス先を間違える・持ちすぎ・カット・奪われたら1つ失う（3回まで）。自分はずっと円の上にいる。',
+          '味方が奪われたら、その味方と鬼が入れ替わる。',
+          'ボールがないときは、円の近くをタップして位置をずらし、パスコースを作れる。'
         ]
       },
-      controls: '操作：味方をタップでパス · 空いた所をタップで移動 · ボールが転がっている間に味方をタップでダイレクト',
+      controls: {
+        multi: '操作：味方をタップでパス · 空いた所をタップで移動 · ボールが転がっている間に味方をタップでダイレクト',
+        ring: '操作：受け手をタップ → 叫ぶ名前の選手をタップ · ボールが来る前に選べばダイレクト'
+      },
       start: '練習開始', again: 'もう一回',
       overH: '練習終了', overStat: (s, p, b) => `スコア ${s} · 最長 ${p} 本連続 · ベスト ${b}`,
-      overMore: (st, rondo) => `自分のパス ${st.myPasses} 本 · タッチ ${st.touches} 回` +
-        (rondo ? ` · 奪取 ${st.steals} 回 · 鬼 ${st.inMiddle} 回` : ''),
+      overMore: st => `自分のパス ${st.myPasses} 本 · タッチ ${st.touches} 回`,
       newBest: '自己ベスト！',
       ruleLbl: '自分が保持', noLbl: 'パス不可',
-      ruleText: { easy: '別の色へ', normal: '別の色 + 直前の色に返さない', osim: '別の色 + 直前の色に返さない + コールに従う' },
-      tipOff: { multi: '空いている所へ動いて、パスを引き出す', pass: 'ボールが戻ってくるのを待つ', rondo: '円に沿って動き、パスコースを作る' },
-      tipRun: '黄色い円へ走れ！3人目がそこへ出す', tipIn: '鬼になった！奪えば外に戻れる',
+      ruleText: {
+        multi: { easy: '別の色へ', normal: '別の色 + 直前の色に返さない', osim: '別の色 + 直前の色に返さない + コールに従う' },
+        ring: { easy: '呼ばれた選手へ出して、次を叫ぶ', normal: '呼ばれた選手へ出して、次を叫ぶ', osim: '隣は呼べない · 名前は一瞬だけ' }
+      },
+      tipOff: '空いている所へ動いて、パスを引き出す',
+      passTo: 'パス先', free: '誰でもいい', unknown: '？さっき誰が呼ばれた', pickFirst: '受け手をタップ → 叫ぶ名前をタップ',
+      picked: n => `受け手：${n} → 叫ぶ名前をタップ`, nextYou: '次は自分に来る！準備', listen: '名前を聞いて、ボールの行き先を読む',
+      tipRing: 'ボールがないときは円の近くをタップして動ける',
       callLbl: 'コーチ：', callTo: c => `次は ${c}！`,
       fault: { same: '同じ色にパス！', back: '直前の色に返した！', call: 'コールを聞いてない！', slow: '持ちすぎ！',
-               cut: 'カットされた！', tackle: '奪われた！', late: '間に合わない！' },
+               cut: 'カットされた！', tackle: '奪われた！', wrong: 'パス先が違う！', neighbor: '隣の選手を呼んだ！' },
       mateFault: { cut: '味方がカットされた', tackle: '味方が奪われた', slow: '味方が持ちすぎ' },
-      goIn: '鬼', swap: '交代', steal: '奪った！',
-      oneTouch: 'ダイレクト！', callOk: 'コール成功', third: '3人目！',
-      foot: 'イビチャ・オシムが千葉や日本代表で使った練習がもと。多色ビブスでパス先を縛り、出したら走り、3人目を使う。受ける前に次を見る習慣をつける。<a href="./">← 小石川運動場の空き状況</a>'
+      swap: '交代', goodCall: 'いいコール',
+      oneTouch: 'ダイレクト！', callOk: 'コール成功',
+      foot: 'イビチャ・オシムが千葉や日本代表で使った練習がもと。多色ビブスでパス先を縛り、パスと同時に次の選手の名前を叫ぶ。受ける前に次を見る習慣をつける。<a href="./">← 小石川運動場の空き状況</a>'
     }
   };
 
@@ -237,23 +253,24 @@
     { k: 'W', fill: '#f2f2ee', edge: '#7c7c76' }
   ];
 
-  // 每个练习 × 难度的参数。df: 防守速度，aiHold: 队友持球时间范围，feed: 队友优先传给你的概率，
-  // err: Rondo 里队友不看线路乱传的概率（你在圈里时才用满）
+  // 每个练习 × 难度的参数。df: 防守速度，aiHold: 队友持球时间，feed: 队友传给（或喊）你的概率，
+  // n: 圈上人数，noNb: 不能喊接球人旁边的人，bubble: 喊名字显示几秒，showNeed: 规则栏里写出该传给谁，
+  // aiMax: Rondo 里线路被封时队友最多等多久，err: 队友不看线路乱喊的概率
   const CFG = {
     multi: {
       easy:   { colors: 3, per: 3, defs: 1, touch: 3.2, minTouch: 2.2, back: false, calls: false, hints: true,  df: 95,  aiHold: [0.6, 1.1], feed: 0.5,  lives: 3 },
       normal: { colors: 4, per: 3, defs: 2, touch: 2.4, minTouch: 1.5, back: true,  calls: false, hints: false, df: 120, aiHold: [0.45, 0.9], feed: 0.45, lives: 3 },
       osim:   { colors: 5, per: 3, defs: 3, touch: 1.9, minTouch: 1.1, back: true,  calls: true,  hints: false, df: 135, aiHold: [0.3, 0.7], feed: 0.45, lives: 3 }
     },
-    pass: {
-      easy:   { colors: 3, per: 2, defs: 0, touch: 3.0, minTouch: 2.0, back: false, calls: false, hints: true,  df: 80,  aiHold: [0.6, 0.8],  zone: [170, 250], lives: 3 },
-      normal: { colors: 3, per: 3, defs: 1, touch: 2.2, minTouch: 1.4, back: true,  calls: false, hints: false, df: 100, aiHold: [0.4, 0.6],  zone: [200, 310], lives: 3 },
-      osim:   { colors: 4, per: 2, defs: 2, touch: 1.7, minTouch: 1.0, back: true,  calls: true,  hints: false, df: 115, aiHold: [0.25, 0.45], zone: [230, 350], lives: 3 }
+    call: {
+      easy:   { n: 5, defs: 0, touch: 4.0, minTouch: 3.0, aiHold: [0.8, 1.1], feed: 0.45, hints: true,  noNb: false, shuffle: false, bubble: 1.8, showNeed: true,  lives: 3 },
+      normal: { n: 6, defs: 0, touch: 3.0, minTouch: 2.0, aiHold: [0.55, 0.85], feed: 0.4, hints: false, noNb: false, shuffle: false, bubble: 1.3, showNeed: true,  lives: 3 },
+      osim:   { n: 6, defs: 0, touch: 2.4, minTouch: 1.6, aiHold: [0.4, 0.65], feed: 0.4, hints: false, noNb: true,  shuffle: true,  bubble: 0.8, showNeed: false, lives: 3 }
     },
     rondo: {
-      easy:   { colors: 3, defs: 2, touch: 3.0, minTouch: 2.2, back: false, calls: false, hints: true,  df: 80,  aiHold: [0.6, 1.0], feed: 0.5,  time: 90, err: 0.25 },
-      normal: { colors: 3, defs: 2, touch: 2.2, minTouch: 1.6, back: true,  calls: false, hints: false, df: 105, aiHold: [0.45, 0.8], feed: 0.45, time: 90, err: 0.16 },
-      osim:   { colors: 3, defs: 2, touch: 1.7, minTouch: 1.2, back: true,  calls: true,  hints: false, df: 125, aiHold: [0.3, 0.6], feed: 0.45, time: 90, err: 0.1 }
+      easy:   { n: 6, defs: 1, df: 90,  touch: 4.0, minTouch: 3.0, aiHold: [0.6, 0.9],  aiMax: 1.6, feed: 0.45, hints: true,  noNb: false, bubble: 1.8, showNeed: true,  err: 0.3,  lives: 3 },
+      normal: { n: 6, defs: 1, df: 115, touch: 3.0, minTouch: 2.2, aiHold: [0.45, 0.75], aiMax: 1.4, feed: 0.4, hints: false, noNb: false, bubble: 1.3, showNeed: true,  err: 0.2,  lives: 3 },
+      osim:   { n: 6, defs: 1, df: 135, touch: 2.4, minTouch: 1.8, aiHold: [0.3, 0.6],  aiMax: 1.2, feed: 0.4, hints: false, noNb: true,  bubble: 0.8, showNeed: false, err: 0.12, lives: 3 }
     }
   };
 
@@ -266,12 +283,14 @@
   let lang = store.get('lang', (navigator.language || '').startsWith('ja') ? 'ja' : 'zh');
   if (!STR[lang]) lang = 'zh';
   let mode = store.get('mode', 'multi');
+  if (mode === 'pass') mode = 'call';
   if (!CFG[mode]) mode = 'multi';
   let level = store.get('level', 'normal');
   if (!CFG.multi[level]) level = 'normal';
   let soundOn = store.get('sound', true);
   const T = () => STR[lang];
   const bestKey = () => `best.${mode}.${level}`;
+  const isRing = () => mode !== 'multi';
 
   // ---------- 画布 ----------
   const cv = document.getElementById('cv');
@@ -280,7 +299,7 @@
   const FONT = getComputedStyle(document.body).fontFamily;
   let W = 1000, H = 620, scale = 1, dpr = 1, CX = 500, CY = 310, RR = 250;
   const M = 44; // 场地内边距（标志桶位置）
-  const R_P = 17, R_BALL = 7, BALL_SPEED = 760, ME_SPEED = 200, ME_IN_SPEED = 220;
+  const R_P = 17, R_BALL = 7, BALL_SPEED = 760, ME_SPEED = 200;
 
   function resize() {
     const cssW = stage.clientWidth;
@@ -297,8 +316,10 @@
     cv.style.height = (H * scale) + 'px';
     if (state && (oldW !== W || oldH !== H)) {
       const fit = p => { p.x = clamp(p.x / oldW * W, M, W - M); p.y = clamp(p.y / oldH * H, M, H - M); };
-      for (const p of [...state.mates, ...state.defs]) { fit(p); p.tx = p.x; p.ty = p.y; if (state.mode === 'rondo' && p.seated && p.c >= 0) place(p); }
-      if (state.chain) fit(state.chain.zone);
+      for (const p of [...state.mates, ...state.defs]) {
+        fit(p); p.tx = p.x; p.ty = p.y;
+        if (state.ring && p.seated && state.mates.includes(p)) place(p);
+      }
       if (state.ball) fit(state.ball);
       state.meTarget = null;
     }
@@ -310,6 +331,7 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
   const angDiff = (a, b) => Math.atan2(Math.sin(b - a), Math.cos(b - a));
+  const TAU = Math.PI * 2;
   function segDist(p, a, b) {
     const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy || 1;
     const t = clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / L, 0, 1);
@@ -340,6 +362,7 @@
     kick: () => beep(180, 0.08, 'triangle', 0.12),
     ok: () => beep(660, 0.09, 'sine', 0.06),
     soft: () => beep(330, 0.15, 'sine', 0.05),
+    shout: () => beep(520, 0.07, 'sawtooth', 0.025),
     whistle: () => { beep(2300, 0.18, 'square', 0.04); setTimeout(() => beep(2300, 0.32, 'square', 0.04), 220); },
     call: () => beep(990, 0.12, 'triangle', 0.06)
   };
@@ -353,17 +376,19 @@
   }
 
   function newGame() {
-    const L = CFG[mode][level];
+    const L = CFG[mode][level], ring = isRing();
     const mates = [], defs = [];
-    if (mode === 'rondo') {
-      for (let i = 0; i < 6; i++) {
-        const p = mkMate(i % L.colors, 0, 0);
-        p.home = p.ang = Math.PI / 2 + i * Math.PI / 3;
+    if (ring) {
+      // 名字随语言变，所以只存序号
+      for (let i = 0; i < L.n; i++) {
+        const p = mkMate(i === 0 ? 0 : 1, 0, 0);
+        p.ni = i;
+        p.home = p.ang = Math.PI / 2 + i * TAU / L.n;
         place(p);
         mates.push(p);
       }
       for (let i = 0; i < L.defs; i++) {
-        defs.push({ id: nextId++, c: -1, x: CX + (i ? 40 : -40), y: CY, vx: 0, vy: 0, role: i === 0 ? 'press' : 'lane', seated: true });
+        defs.push({ id: nextId++, ni: L.n + i, c: -1, x: CX, y: CY, vx: 0, vy: 0, role: 'press', seated: true });
       }
     } else {
       for (let c = 0; c < L.colors; c++) {
@@ -378,15 +403,18 @@
     const me = mates[0];
     me.isMe = true;
     state = {
-      mode, L, mates, defs, me, score: 0, combo: 0, bestCombo: 0, lives: L.lives || 0, timeLeft: L.time || 0,
-      passes: 0, stats: { myPasses: 0, touches: 0, steals: 0, inMiddle: 0 },
+      mode, ring, L, mates, defs, me, score: 0, combo: 0, bestCombo: 0, lives: L.lives,
+      passes: 0, stats: { myPasses: 0, touches: 0 },
       holder: null, prevColor: null, holdT: 0, aiDelay: 0, touch: L.touch, call: null, nextCallIn: 4,
-      ball: null, queued: null, chain: null, freeze: 0, floats: [], over: false, running: true,
-      hover: null, flash: 0, meTarget: null, sinceMe: 0, pendingOver: false, clock: 0, shownSec: -1
+      nextFor: null, nextBy: null, sel: null, bubbles: [],
+      ball: null, queued: null, freeze: 0, floats: [], over: false, running: true,
+      hover: null, flash: 0, meTarget: null, sinceMe: 0, pendingOver: false, clock: 0
     };
     giveBall(me, true);
     updateHud();
   }
+
+  const nameOf = p => T().names[p.ni] || '?';
 
   function retarget(p) {
     p.tx = rand(M + 20, W - M - 20);
@@ -409,23 +437,23 @@
     s.aiDelay = p.isMe ? 0 : rand(s.L.aiHold[0], s.L.aiHold[1]);
     if (p.isMe) s.meTarget = null;
     if (fresh) {
-      s.prevColor = null; s.call = null; s.chain = null;
-      if (s.mode !== 'rondo') {
+      s.prevColor = null; s.call = null; s.nextFor = null; s.nextBy = null; s.sel = null;
+      if (!s.ring) {
         // 防守者被推开，给重新开始留空间
         for (const d of s.defs) {
           let a = Math.atan2(d.y - p.y, d.x - p.x);
-          if (!isFinite(a)) a = rand(0, Math.PI * 2);
+          if (!isFinite(a)) a = rand(0, TAU);
           d.x = clamp(p.x + Math.cos(a) * 260, M, W - M);
           d.y = clamp(p.y + Math.sin(a) * 260, M, H - M);
         }
       }
     }
     // 已经预选了一脚出球时不喊色，否则玩家来不及反应
-    if (p.isMe && !oneTouchNext) maybeCall(); else s.call = null;
+    if (!s.ring && p.isMe && !oneTouchNext) maybeCall(); else s.call = null;
     renderRule();
   }
 
-  // from 持球时能否传给 m（颜色规则，不含教练喊色）
+  // ---------- 多色传球的规则 ----------
   function legalFor(from, m) {
     if (m.c === from.c) return false;
     if (state.L.back && m.c === state.prevColor) return false;
@@ -453,84 +481,70 @@
     return null;
   }
 
+  // ---------- 站圈传球的规则 ----------
+  // 圈上按角度排序后相邻的两人
+  function isNeighbor(a, b) {
+    const key = p => (((p.seated ? p.ang : p.home) % TAU) + TAU) % TAU;
+    const order = [...state.mates].sort((p, q) => key(p) - key(q));
+    const i = order.indexOf(a), j = order.indexOf(b), n = order.length;
+    if (i < 0 || j < 0) return false;
+    const d = Math.abs(i - j);
+    return d === 1 || d === n - 1;
+  }
+
   // 传球线路的安全余量：>0 表示防守来不及断
   function laneSafety(a, b) {
     const s = state, len = dist(a, b);
     let m = Infinity;
     for (const d of s.defs) {
       const { d: dd, t } = segDist(d, a, b);
-      const spd = d.isMe ? ME_IN_SPEED : s.L.df * 1.15;
+      const spd = s.L.df * 1.15;
       m = Math.min(m, dd - (R_P + R_BALL) - spd * (t * len / BALL_SPEED) * 0.9);
     }
     return m;
   }
 
-  // 传球训练：你传出后，在空当里挑一个要跑去的位置
-  function pickZone(a) {
-    const s = state, me = s.me, [lo, hi] = s.L.zone;
-    let best = null, bs = -Infinity;
-    for (let i = 0; i < 50; i++) {
-      const ang = rand(0, Math.PI * 2), d = rand(lo, hi);
-      const p = { x: me.x + Math.cos(ang) * d, y: me.y + Math.sin(ang) * d };
-      if (p.x < M + 50 || p.x > W - M - 50 || p.y < M + 50 || p.y > H - M - 50) continue;
-      if (dist(p, a) < 130) continue;
-      let sc = rand(0, 60);
-      sc += Math.min(300, ...s.defs.map(df => dist(df, p)));
-      sc += 0.5 * Math.min(120, ...s.mates.filter(m => !m.isMe).map(m => dist(m, p)));
-      if (sc > bs) { bs = sc; best = p; }
-    }
-    if (!best) {
-      const ang = Math.atan2(H / 2 - me.y, W / 2 - me.x);
-      best = { x: me.x + Math.cos(ang) * lo, y: me.y + Math.sin(ang) * lo };
-    }
-    return { x: best.x, y: best.y, r: 52, spot: true };
+  function bubble(p, text) {
+    const s = state;
+    s.bubbles = s.bubbles.filter(b => b.p !== p);
+    s.bubbles.push({ p, text, t: 0, life: s.L.bubble || 1.2 });
   }
 
-  function pass(from, to, oneTouch) {
+  // call：接球人下一脚要传给的人（站圈模式）
+  function pass(from, to, oneTouch, call) {
     const s = state;
-    if (from.isMe && !to.spot) {
+    if (!s.ring && from.isMe) {
       const why = faultReason(to);
       if (why) { fault(why, from, nearestDef(from)); return; }
     }
-    s.ball = { x: from.x, y: from.y, from, to, moving: true, trail: [],
+    s.ball = { x: from.x, y: from.y, from, to, moving: true, trail: [], calledBy: s.nextBy,
                oneTouch: from.isMe && (oneTouch || s.holdT < 0.5), wasCall: from.isMe && s.call != null };
     s.prevColor = from.c;
     s.holder = null;
     s.call = null;
     s.queued = null;
-    if (!to.spot) { to.vx = to.vy = 0; }
-    if (s.mode === 'pass' && from.isMe) s.chain = { zone: pickZone(to), stage: 'a', a: to, b: null };
+    s.sel = null;
+    to.vx = to.vy = 0;
+    if (s.ring) {
+      s.nextFor = call || null; s.nextBy = from;
+      if (call) { bubble(from, nameOf(call) + '！'); sfx.shout(); }
+    }
     sfx.kick();
     renderRule();
   }
 
+  // 你在站圈模式里出球：先检查传没传对人、喊得合不合规
+  function myRingPass(a, b, oneTouch) {
+    const s = state, me = s.me;
+    if (s.nextFor && a !== s.nextFor) { fault('wrong', me, nearestDef(me)); return; }
+    if (s.L.noNb && isNeighbor(a, b)) { fault('neighbor', me, nearestDef(me)); return; }
+    pass(me, a, oneTouch, b);
+  }
+
   function aiPass(h) {
     const s = state, me = s.me;
-    if (s.mode === 'pass') {
-      const ch = s.chain;
-      if (ch && ch.stage === 'a') {
-        // 选第三人：颜色既不同于 A，也不同于你（否则回传给你会犯规）
-        const cands = s.mates.filter(m => m !== h && !m.isMe && m.c !== h.c && m.c !== me.c);
-        if (cands.length) {
-          let best = cands[0], bs = -Infinity;
-          for (const m of cands) {
-            const sc = Math.min(60, laneSafety(h, m)) + 0.5 * Math.min(60, laneSafety(m, ch.zone)) - 0.15 * dist(m, ch.zone) + rand(0, 20);
-            if (sc > bs) { bs = sc; best = m; }
-          }
-          ch.b = best; ch.stage = 'b';
-          pass(h, best);
-          return;
-        }
-        ch.stage = 'ret';
-        pass(h, ch.zone);
-        return;
-      }
-      if (ch && ch.stage === 'b') { ch.stage = 'ret'; pass(h, ch.zone); return; }
-      if (legalFor(h, me)) { pass(h, me); return; }
-    }
-    const legal = s.mates.filter(m => m !== h && legalFor(h, m) && (m.seated !== false));
+    const legal = s.mates.filter(m => m !== h && legalFor(h, m));
     if (!legal.length) { pass(h, pickOne(s.mates.filter(m => m !== h))); return; }
-    if (s.L.err && Math.random() < s.L.err * (meOutside() ? 0.4 : 1)) { pass(h, pickOne(legal)); return; }
     const scored = legal.map(m => ({ m, safe: laneSafety(h, m) }));
     const safe = scored.filter(x => x.safe > 4);
     const meOpt = safe.find(x => x.m.isMe);
@@ -542,6 +556,41 @@
     } else choice = scored.sort((a, b) => b.safe - a.safe)[0].m;
     s.sinceMe = choice === me ? 0 : s.sinceMe + 1;
     pass(h, choice);
+  }
+
+  // 站圈模式的队友：传给被喊的人，同时替下一个人喊名字
+  function aiRingPass(h) {
+    const s = state, me = s.me;
+    const seated = s.mates.filter(m => m !== h && m.seated !== false);
+    let target = s.nextFor;
+    if (!target || target === h) {
+      const meOk = meOutside() && seated.includes(me);
+      target = meOk && Math.random() < s.L.feed ? me : pickOne(seated.filter(m => !m.isMe).length ? seated.filter(m => !m.isMe) : seated);
+    }
+    // 线路被封时等一下，等不了就硬传
+    if (s.defs.length && laneSafety(h, target) < 0 && s.holdT < s.L.aiMax) return;
+    let cands = s.mates.filter(m => m !== target && m !== h && m.seated !== false);
+    if (s.L.noNb) cands = cands.filter(m => !isNeighbor(target, m));
+    if (!cands.length) cands = s.mates.filter(m => m !== target);
+    let call;
+    if (s.defs.length && Math.random() >= (s.L.err || 0)) {
+      const ok = cands.filter(m => laneSafety(target, m) > 10);
+      if (ok.length) cands = ok;
+    }
+    const meCand = cands.includes(me);
+    if (meCand && Math.random() < s.L.feed + 0.12 * s.sinceMe) call = me;
+    else call = pickOne(cands.filter(m => !m.isMe).length ? cands.filter(m => !m.isMe) : cands);
+    s.sinceMe = call === me ? 0 : s.sinceMe + 1;
+    pass(h, target, false, call);
+  }
+
+  function shuffleRing() {
+    const s = state;
+    const pool = s.mates.filter(m => !m.isMe && m !== s.holder && m !== s.nextFor && m.seated);
+    if (pool.length < 2) return;
+    const a = pickOne(pool), b = pickOne(pool.filter(x => x !== a));
+    [a.home, b.home] = [b.home, a.home];
+    a.seated = b.seated = false;
   }
 
   function receive(target) {
@@ -559,49 +608,45 @@
       if (s.stats.myPasses % 8 === 0) s.touch = Math.max(s.L.minTouch, s.touch * 0.93);
     } else if (target.isMe) {
       pts = 5;
-      if (s.mode === 'pass' && s.chain && s.chain.stage === 'ret') { pts = 20; label = t.third + ' +20'; color = '#5fd68b'; }
-    } else if (!meIn) pts = 2;
-    if (target.isMe) { s.stats.touches++; s.chain = null; }
+    } else if (!meIn) {
+      pts = 2;
+      // 你喊的名字让这一脚传成了
+      if (s.ring && b.calledBy === s.me) { pts = 5; label = t.goodCall + ' +5'; color = '#5fd68b'; }
+    }
+    if (target.isMe) s.stats.touches++;
     s.score += pts;
     if (label) floatText(target.x, target.y - 30, label, color);
     if (from.isMe || target.isMe) sfx.ok();
     const q = s.queued;
     s.queued = null;
-    const oneTouchNext = target.isMe && q && q !== target;
+    const oneTouchNext = target.isMe && q && (s.ring ? q.a && q.b : q !== target);
     giveBall(target, false, oneTouchNext);
+    if (s.ring && s.L.shuffle && s.passes % 5 === 0) shuffleRing();
     updateHud();
-    if (oneTouchNext) pass(target, q, true);
+    if (oneTouchNext) {
+      if (s.ring) myRingPass(q.a, q.b, true);
+      else pass(target, q, true);
+    }
   }
 
   // loser：丢球的人；winner：抢到球的防守（可能为空）
   function fault(why, loser, winner) {
     const s = state, t = T(), me = s.me;
     const meLost = loser === me;
-    s.combo = 0; s.queued = null; s.chain = null; s.call = null;
+    s.combo = 0; s.queued = null; s.call = null; s.sel = null; s.nextFor = null; s.nextBy = null;
     s.holder = null; s.ball.moving = false;
     const at = loser || s.ball;
-    if (s.mode === 'rondo') {
-      const w = winner || nearestDef(loser);
-      if (w === me) {
-        s.stats.steals++; s.score += 30;
-        floatText(me.x, me.y - 34, t.steal + ' +30', '#f5c518', 1.3);
-        sfx.ok();
-      } else if (meLost) {
-        s.stats.inMiddle++; s.flash = 1;
-        floatText(at.x, at.y - 34, t.fault[why] + ' ' + t.goIn, '#ff6b5e', 1.4);
-        sfx.whistle();
-      } else {
-        floatText(at.x, at.y - 34, (t.mateFault[why] || t.mateFault.cut) + ' · ' + t.swap, '#d6e2da', 1.1);
-        sfx.soft();
-      }
-      swap(loser, w);
-      s.freeze = 1.1;
-    } else if (meLost) {
+    if (meLost) {
       s.lives--; s.flash = 1;
       floatText(at.x, at.y - 34, t.fault[why], '#ff6b5e', 1.4);
       sfx.whistle();
       s.freeze = 1.4;
       if (s.lives <= 0) s.pendingOver = true;
+    } else if (s.mode === 'rondo') {
+      floatText(at.x, at.y - 34, (t.mateFault[why] || t.mateFault.cut) + ' · ' + t.swap, '#d6e2da', 1.1);
+      sfx.soft();
+      swap(loser, winner || nearestDef(loser));
+      s.freeze = 1.1;
     } else {
       floatText(at.x, at.y - 34, t.mateFault[why] || t.mateFault.cut, '#d6e2da', 1.1);
       sfx.soft();
@@ -611,22 +656,20 @@
     renderRule();
   }
 
-  // Rondo：丢球的人进圈，抢到的人出来接替他的位置和颜色
+  // Rondo：丢球的队友进圈，逼抢的人出来接替他在圈上的位置（你自己不会进圈）
   function swap(loser, w) {
     const s = state;
-    if (!w) return;
+    if (!w || loser.isMe) return;
     const iM = s.mates.indexOf(loser), iD = s.defs.indexOf(w);
     if (iM < 0 || iD < 0) return;
     s.mates[iM] = w; s.defs[iD] = loser;
     const role = w.role;
-    w.c = loser.c; w.home = loser.home; w.seated = false; w.role = undefined;
+    w.c = 1; w.home = loser.home; w.seated = false; w.role = undefined;
     loser.c = -1; loser.home = null; loser.seated = false; loser.role = role;
-    s.meTarget = null;
   }
 
   function restart() {
     const s = state;
-    if (s.mode === 'pass') { giveBall(s.me, true); return; }
     const pool = s.mates.filter(m => m.seated !== false && s.defs.every(d => dist(d, m) > 140));
     giveBall(pickOne(pool.length ? pool : s.mates), true);
   }
@@ -649,7 +692,7 @@
 
   function separate() {
     const s = state, all = [...s.mates, ...s.defs];
-    const fixed = p => p.lock || (s.mode === 'rondo' && p.c >= 0);
+    const fixed = p => p.lock || (s.ring && p.c >= 0);
     for (let i = 0; i < all.length; i++) {
       for (let j = i + 1; j < all.length; j++) {
         const a = all[i], b = all[j];
@@ -679,8 +722,9 @@
   function ringMove(p, dt) {
     const s = state;
     if (!p.seated) {
+      if (p.lock) { p.vx *= 0.8; p.vy *= 0.8; return; }
       const h = ringPoint(p.home);
-      if (steer(p, h.x, h.y, 420, dt) < 8) { p.seated = true; p.ang = p.home; place(p); }
+      if (steer(p, h.x, h.y, 320, dt) < 8) { p.seated = true; p.ang = p.home; place(p); }
       return;
     }
     if (p.lock) { place(p); return; }
@@ -688,7 +732,7 @@
     if (p.isMe) {
       target = s.meTarget ? Math.atan2(s.meTarget.y - CY, s.meTarget.x - CX) : p.ang;
     } else {
-      target = p.home + Math.sin(s.clock * 0.8 + p.id) * 0.12;
+      target = p.home + Math.sin(s.clock * 0.8 + p.id) * (s.defs.length ? 0.12 : 0.04);
       const me = s.me;
       if (meOutside() && me.seated) {
         const dd = angDiff(me.ang, target);
@@ -704,7 +748,7 @@
     const s = state, b = s.ball;
     for (const p of s.mates) {
       p.lock = p === s.holder || (b.moving && b.to === p);
-      if (s.mode === 'rondo') { ringMove(p, dt); continue; }
+      if (s.ring) { ringMove(p, dt); continue; }
       if (p.lock) { p.vx *= 0.8; p.vy *= 0.8; continue; }
       if (p.isMe) {
         if (s.meTarget) steer(p, s.meTarget.x, s.meTarget.y, ME_SPEED, dt);
@@ -716,43 +760,48 @@
   }
 
   function moveDefs(dt, frozen) {
-    const s = state, L = s.L, rondo = s.mode === 'rondo';
+    const s = state, L = s.L, ring = s.ring;
     let laneIdx = 0;
     s.defs.forEach((d, i) => {
       d.lock = false;
-      if (d.isMe) {
-        if (s.meTarget) steer(d, s.meTarget.x, s.meTarget.y, ME_IN_SPEED, dt);
-        else { d.vx *= 0.85; d.vy *= 0.85; }
-        if (rondo) { if (dist(d, { x: CX, y: CY }) < RR - 40) d.seated = true; if (d.seated) insideRing(d, RR - 24); }
-        return;
-      }
-      if (rondo && (!d.seated || frozen)) {
-        const tx = CX + (i % 2 ? 36 : -36), ty = CY;
-        steer(d, tx, ty, d.seated ? L.df : 420, dt);
+      if (ring && (!d.seated || frozen)) {
+        steer(d, CX + (i % 2 ? 36 : 0), CY, d.seated ? L.df : 420, dt);
         if (dist(d, { x: CX, y: CY }) < RR - 40) d.seated = true;
         return;
       }
       if (frozen) { d.vx *= 0.9; d.vy *= 0.9; d.x += d.vx * dt; d.y += d.vy * dt; return; }
       let tx = d.x, ty = d.y, spd = L.df;
-      if (s.ball.moving) {
-        // 追向传球路线上的前方点
-        const b = s.ball, to = b.to;
-        const { t } = segDist(d, b, to);
-        const tt = Math.max(t, 0.25);
-        tx = b.x + (to.x - b.x) * tt; ty = b.y + (to.y - b.y) * tt;
-        spd *= 1.15;
+      const b = s.ball;
+      if (b.moving) {
+        const to = b.to, near = segDist(d, b, to);
+        if (ring && s.nextFor && near.d > 110) {
+          // 断不到这一脚，就听名字去封下一条线路
+          const nf = s.nextFor;
+          tx = to.x + (nf.x - to.x) * 0.3; ty = to.y + (nf.y - to.y) * 0.3;
+        } else {
+          // 追向传球路线上的前方点
+          const tt = Math.max(near.t, 0.25);
+          tx = b.x + (to.x - b.x) * tt; ty = b.y + (to.y - b.y) * tt;
+          spd *= 1.15;
+        }
+      } else if (s.holder && ring) {
+        // 先封被喊的线路，持球越久越往人身上逼
+        const h = s.holder, nf = s.nextFor || h, k = Math.min(1, s.holdT / 1.0);
+        const lx = h.x + (nf.x - h.x) * 0.3, ly = h.y + (nf.y - h.y) * 0.3;
+        tx = lx + (h.x - lx) * k; ty = ly + (h.y - ly) * k;
+        spd *= 0.9 + Math.min(s.holdT, 2) * 0.2;
       } else if (s.holder && d.role === 'press') {
         tx = s.holder.x; ty = s.holder.y;
         spd *= 0.9 + Math.min(s.holdT, 2) * 0.25;
       } else if (s.holder) {
         // 封堵：盯离持球人第 n 近的合法接球人线路
         const h = s.holder;
-        const legal = s.mates.filter(m => m !== h && legalFor(h, m)).sort((a, b) => dist(a, h) - dist(b, h));
+        const legal = s.mates.filter(m => m !== h && legalFor(h, m)).sort((a, c) => dist(a, h) - dist(c, h));
         const tgt = legal[laneIdx++ % Math.max(1, legal.length)] || h;
         tx = h.x * 0.45 + tgt.x * 0.55; ty = h.y * 0.45 + tgt.y * 0.55;
-      } else if (rondo) { tx = CX; ty = CY; }
+      } else if (ring) { tx = CX; ty = CY; }
       steer(d, tx, ty, spd, dt);
-      if (rondo) insideRing(d, RR - 24);
+      if (ring) insideRing(d, RR - 24);
     });
   }
 
@@ -762,12 +811,7 @@
     s.clock += dt;
     s.flash = Math.max(0, s.flash - dt * 2.5);
     s.floats = s.floats.filter(f => (f.t += dt) < f.life);
-    if (s.mode === 'rondo') {
-      s.timeLeft -= dt;
-      const sec = Math.max(0, Math.ceil(s.timeLeft));
-      if (sec !== s.shownSec) { s.shownSec = sec; updateHud(); }
-      if (s.timeLeft <= 0) { gameOver(); return; }
-    }
+    s.bubbles = s.bubbles.filter(b => (b.t += dt) < b.life);
     if (keys.size && s.holder !== s.me) keyTarget();
 
     moveMates(dt);
@@ -789,11 +833,8 @@
 
     const b = s.ball;
     if (b.moving) {
-      const to = b.to, me = s.me;
-      // 传进空当的球：你提前跑到球路上就直接接住
-      if (to.spot && meOutside() && Math.hypot(me.x - b.x, me.y - b.y) < R_P + R_BALL + 6) b.to = me;
-      const tgt = b.to;
-      const dx = tgt.x - b.x, dy = tgt.y - b.y, d = Math.hypot(dx, dy);
+      const to = b.to;
+      const dx = to.x - b.x, dy = to.y - b.y, d = Math.hypot(dx, dy);
       const step = BALL_SPEED * dt;
       b.trail.push({ x: b.x, y: b.y });
       if (b.trail.length > 10) b.trail.shift();
@@ -803,20 +844,15 @@
         const f = Math.min(1, step * k / n / Math.max(d, 0.001));
         const px = b.x + dx * f, py = b.y + dy * f;
         for (const df of s.defs) {
-          if (Math.hypot(df.x - px, df.y - py) < R_P + R_BALL - 2 + (df.isMe ? 7 : 0)) {
+          if (Math.hypot(df.x - px, df.y - py) < R_P + R_BALL - 2) {
             b.x = px; b.y = py;
             fault('cut', b.from, df);
             return;
           }
         }
       }
-      if (d <= step + (tgt.spot ? 0 : R_P * 0.6)) {
-        b.x = tgt.x; b.y = tgt.y;
-        if (tgt.spot) {
-          if (dist(me, tgt) <= tgt.r + 4) b.to = me; // 你在黄圈里：球滚到你脚下
-          else { fault('late', me, null); }
-        } else { b.moving = false; receive(tgt); }
-      } else { b.x += dx / d * step; b.y += dy / d * step; }
+      if (d <= step + R_P * 0.6) { b.x = to.x; b.y = to.y; b.moving = false; receive(to); }
+      else { b.x += dx / d * step; b.y += dy / d * step; }
     } else if (s.holder) {
       const h = s.holder;
       s.holdT += dt;
@@ -825,11 +861,13 @@
         if (s.holdT > s.touch) { fault('slow', h, nearestDef(h)); return; }
       } else {
         const pressed = s.defs.some(d => dist(d, h) < 78);
-        if (s.holdT >= s.aiDelay || (pressed && s.holdT > (s.mode === 'rondo' ? 0.3 : 0.15))) { aiPass(h); return; }
+        if (s.holdT >= s.aiDelay || (pressed && s.holdT > (s.ring ? 0.3 : 0.15))) {
+          if (s.ring) aiRingPass(h); else aiPass(h);
+          if (s.holder !== h) return;
+        }
       }
       for (const df of s.defs) {
-        const reach = R_P * 2 + (df.isMe ? 8 : 4);
-        if ((df.role === 'press' || df.isMe) && dist(df, h) < reach && s.holdT > (df.isMe ? 0.12 : 0.35)) {
+        if (df.role === 'press' && dist(df, h) < R_P * 2 + 4 && s.holdT > 0.35) {
           fault('tackle', h, df);
           return;
         }
@@ -852,47 +890,82 @@
       ctx.fillStyle = '#ff7a1a';
       ctx.beginPath(); ctx.moveTo(cx, cy - 11); ctx.lineTo(cx + 8, cy + 7); ctx.lineTo(cx - 8, cy + 7); ctx.closePath(); ctx.fill();
     };
-    if (mode === 'rondo') {
+    if (isRing()) {
       ctx.strokeStyle = 'rgba(244,247,242,0.7)'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(CX, CY, RR, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(CX, CY, RR, 0, TAU); ctx.stroke();
       for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + Math.PI / 8; cone(CX + Math.cos(a) * (RR + 30), CY + Math.sin(a) * (RR + 30)); }
       return;
     }
     ctx.strokeStyle = 'rgba(244,247,242,0.75)'; ctx.lineWidth = 3;
     ctx.strokeRect(M - 14, M - 14, W - 2 * M + 28, H - 2 * M + 28);
     ctx.setLineDash([10, 12]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(244,247,242,0.25)';
-    ctx.beginPath(); ctx.arc(W / 2, H / 2, 70, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, 70, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     for (const [cx, cy] of [[M - 14, M - 14], [W - M + 14, M - 14], [M - 14, H - M + 14], [W - M + 14, H - M + 14],
                             [W / 2, M - 14], [W / 2, H - M + 14]]) cone(cx, cy);
   }
 
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+  }
+
   function drawPlayer(p, alpha = 1) {
-    const t = T(), def = p.c < 0, bib = def ? null : BIBS[p.c];
+    const t = T(), s = state, def = p.c < 0, bib = def ? null : BIBS[p.c];
     ctx.globalAlpha = alpha;
     ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 6, R_P, R_P * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 6, R_P, R_P * 0.7, 0, 0, TAU); ctx.fill();
     ctx.fillStyle = def ? '#141414' : bib.fill; ctx.strokeStyle = def ? '#3b3b3b' : bib.edge; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(p.x, p.y, R_P, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = def ? '#9a9a9a' : '#111';
-    ctx.font = '700 16px ' + FONT;
+    ctx.beginPath(); ctx.arc(p.x, p.y, R_P, 0, TAU); ctx.fill(); ctx.stroke();
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(def ? '×' : t.colors[bib.k], p.x, p.y + 1);
+    if (s.ring) {
+      // 站圈模式：圆里写名字首字，下方写全名
+      const name = nameOf(p);
+      ctx.fillStyle = def ? '#c9c9c9' : '#111';
+      ctx.font = '800 15px ' + FONT;
+      ctx.fillText(name.slice(0, 1), p.x, p.y + 1);
+      if (!p.isMe) {
+        ctx.font = '700 13px ' + FONT;
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.65)';
+        ctx.strokeText(name, p.x, p.y + R_P + 12); ctx.fillStyle = '#ffffff'; ctx.fillText(name, p.x, p.y + R_P + 12);
+      }
+    } else {
+      ctx.fillStyle = def ? '#9a9a9a' : '#111';
+      ctx.font = '700 16px ' + FONT;
+      ctx.fillText(def ? '×' : t.colors[bib.k], p.x, p.y + 1);
+    }
     ctx.globalAlpha = 1;
     if (p.isMe) {
       ctx.strokeStyle = '#f5c518'; ctx.lineWidth = 2.5;
-      ctx.beginPath(); ctx.arc(p.x, p.y, R_P + 4, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(p.x, p.y, R_P + 4, 0, TAU); ctx.stroke();
       ctx.font = '800 13px ' + FONT;
       const w = ctx.measureText(t.me).width + 12, y = p.y - R_P - 20;
       ctx.fillStyle = '#f5c518';
-      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(p.x - w / 2, y - 9, w, 18, 4) : ctx.rect(p.x - w / 2, y - 9, w, 18); ctx.fill();
+      roundRect(p.x - w / 2, y - 9, w, 18, 4); ctx.fill();
       ctx.beginPath(); ctx.moveTo(p.x - 5, y + 9); ctx.lineTo(p.x + 5, y + 9); ctx.lineTo(p.x, y + 14); ctx.closePath(); ctx.fill();
       ctx.fillStyle = '#1b1600'; ctx.fillText(t.me, p.x, y + 1);
     }
   }
 
+  function drawBubble(b) {
+    const p = b.p, a = Math.min(1, (b.life - b.t) / 0.25);
+    ctx.globalAlpha = a;
+    ctx.font = '800 17px ' + FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const w = ctx.measureText(b.text).width + 16, y = p.y - R_P - (p.isMe ? 46 : 24);
+    ctx.fillStyle = '#ffffff';
+    roundRect(p.x - w / 2, y - 13, w, 26, 8); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(p.x - 6, y + 12); ctx.lineTo(p.x + 6, y + 12); ctx.lineTo(p.x, y + 20); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#111'; ctx.fillText(b.text, p.x, y + 1);
+    ctx.globalAlpha = 1;
+  }
+
   function dashed(a, b, color, dash = [6, 8], w = 2) {
     ctx.setLineDash(dash); ctx.lineWidth = w; ctx.strokeStyle = color;
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function ringAround(p, color, extra = 8, w = 2) {
+    ctx.strokeStyle = color; ctx.lineWidth = w;
+    ctx.beginPath(); ctx.arc(p.x, p.y, R_P + extra, 0, TAU); ctx.stroke();
   }
 
   function draw() {
@@ -901,36 +974,35 @@
     drawPitch();
     if (!s) return;
     const me = s.me, b = s.ball, now = performance.now();
-    const meCanAim = !s.freeze && (s.holder === me || (b.moving && (b.to === me || (b.to.spot && s.chain))));
-
-    // 传球训练的跑位目标圈
-    if (s.chain) {
-      const z = s.chain.zone, inZone = dist(me, z) <= z.r + 4;
-      ctx.fillStyle = inZone ? 'rgba(95,214,139,0.22)' : 'rgba(245,197,24,0.16)';
-      ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = inZone ? '#5fd68b' : '#f5c518'; ctx.lineWidth = 2.5;
-      ctx.setLineDash([8, 6]); ctx.lineDashOffset = -now / 40;
-      ctx.beginPath(); ctx.arc(z.x, z.y, z.r + Math.sin(now / 160) * 2, 0, Math.PI * 2); ctx.stroke();
-      ctx.setLineDash([]); ctx.lineDashOffset = 0;
-      if (!inZone) dashed(me, z, 'rgba(245,197,24,0.35)', [2, 7]);
-    }
+    const meCanAim = !s.freeze && (s.holder === me || (b.moving && b.to === me));
 
     // 悬停预览线
-    if (s.hover && meCanAim) dashed(s.holder === me ? me : (b.to.spot ? b.to : me), s.hover, 'rgba(255,255,255,0.55)');
-    // 已预选的一脚出球
-    if (s.queued && b.moving) {
-      const from = b.to.spot ? b.to : me;
-      dashed(from, s.queued, 'rgba(245,197,24,0.85)', [3, 6]);
-      ctx.strokeStyle = 'rgba(245,197,24,0.85)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(s.queued.x, s.queued.y, R_P + 8, 0, Math.PI * 2); ctx.stroke();
-    }
-    // 入门提示：队友能传给你时显示一条绿线
-    if (s.L.hints && s.holder && !s.holder.isMe && meOutside() && !s.freeze &&
-        legalFor(s.holder, me) && laneSafety(s.holder, me) > 4) {
-      dashed(s.holder, me, 'rgba(95,214,139,0.6)', [4, 6]);
+    if (s.hover && meCanAim) dashed(me, s.hover, 'rgba(255,255,255,0.55)');
+    if (s.ring) {
+      // 已选的接球人和预选的一脚出球
+      if (s.sel && meCanAim) { dashed(me, s.sel, 'rgba(245,197,24,0.85)', [3, 6]); ringAround(s.sel, 'rgba(245,197,24,0.9)'); }
+      if (s.queued && s.queued.b) {
+        dashed(me, s.queued.a, 'rgba(245,197,24,0.85)', [3, 6]);
+        dashed(s.queued.a, s.queued.b, 'rgba(245,197,24,0.4)', [2, 6]);
+        ringAround(s.queued.a, 'rgba(245,197,24,0.9)');
+      }
+      // 入门提示：该传给谁
+      if (s.L.hints && s.nextFor && meCanAim && s.nextFor !== me) {
+        ringAround(s.nextFor, '#5fd68b', 12 + Math.sin(now / 140) * 2, 2.5);
+      }
+    } else {
+      if (s.queued && b.moving) {
+        dashed(me, s.queued, 'rgba(245,197,24,0.85)', [3, 6]);
+        ringAround(s.queued, 'rgba(245,197,24,0.85)');
+      }
+      // 入门提示：队友能传给你时显示一条绿线
+      if (s.L.hints && s.holder && !s.holder.isMe && meOutside() && !s.freeze &&
+          legalFor(s.holder, me) && laneSafety(s.holder, me) > 4) {
+        dashed(s.holder, me, 'rgba(95,214,139,0.6)', [4, 6]);
+      }
     }
     // 你的跑位目标
-    if (s.meTarget && s.holder !== me && dist(me, s.meTarget) > 14 && !(s.mode === 'rondo' && meOutside())) {
+    if (s.meTarget && s.holder !== me && dist(me, s.meTarget) > 14 && !(s.ring && meOutside())) {
       const m = s.meTarget;
       ctx.strokeStyle = 'rgba(245,197,24,0.7)'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(m.x - 6, m.y - 6); ctx.lineTo(m.x + 6, m.y + 6); ctx.moveTo(m.x + 6, m.y - 6); ctx.lineTo(m.x - 6, m.y + 6); ctx.stroke();
@@ -938,15 +1010,12 @@
 
     // 入门提示：不能接球的队友变暗
     let illegal = null;
-    if (s.L.hints && s.holder === me && !s.freeze) illegal = new Set(s.mates.filter(m => m !== me && faultReason(m)));
+    if (!s.ring && s.L.hints && s.holder === me && !s.freeze) illegal = new Set(s.mates.filter(m => m !== me && faultReason(m)));
 
     for (const p of s.mates) {
       if (p.isMe) continue;
       drawPlayer(p, illegal && illegal.has(p) ? 0.35 : 1);
-      if (s.call != null && p.c === s.call && s.holder === me) {
-        ctx.strokeStyle = '#f5c518'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(p.x, p.y, R_P + 6 + Math.sin(now / 120) * 2, 0, Math.PI * 2); ctx.stroke();
-      }
+      if (s.call != null && p.c === s.call && s.holder === me) ringAround(p, '#f5c518', 6 + Math.sin(now / 120) * 2);
     }
     for (const d of s.defs) if (!d.isMe) drawPlayer(d);
     drawPlayer(me);
@@ -955,20 +1024,22 @@
     if (s.holder === me && !s.freeze) {
       const frac = clamp(1 - s.holdT / s.touch, 0, 1);
       ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-      ctx.beginPath(); ctx.arc(me.x, me.y, R_P + 10, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(me.x, me.y, R_P + 10, 0, TAU); ctx.stroke();
       ctx.strokeStyle = frac > 0.5 ? '#ffffff' : frac > 0.25 ? '#f5c518' : '#ff6b5e';
-      ctx.beginPath(); ctx.arc(me.x, me.y, R_P + 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); ctx.stroke();
+      ctx.beginPath(); ctx.arc(me.x, me.y, R_P + 10, -Math.PI / 2, -Math.PI / 2 + TAU * frac); ctx.stroke();
     }
 
     // 球
     b.trail.forEach((p, i) => {
       ctx.fillStyle = `rgba(255,255,255,${(i + 1) / b.trail.length * 0.3})`;
-      ctx.beginPath(); ctx.arc(p.x, p.y, R_BALL * (0.4 + i / b.trail.length * 0.5), 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, R_BALL * (0.4 + i / b.trail.length * 0.5), 0, TAU); ctx.fill();
     });
     const bx = s.holder ? b.x + 12 : b.x, by = s.holder ? b.y + 12 : b.y;
     ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(bx, by, R_BALL, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(bx, by, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx, by, R_BALL, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(bx, by, 2.4, 0, TAU); ctx.fill();
+
+    for (const bb of s.bubbles) drawBubble(bb);
 
     // 飘字
     for (const f of s.floats) {
@@ -991,16 +1062,9 @@
     const s = state, t = T(), lives = $('lives');
     $('score').textContent = s ? s.score : 0;
     $('combo').textContent = s ? s.combo : 0;
-    if (mode === 'rondo') {
-      $('t-lives').textContent = t.time;
-      lives.className = '';
-      lives.textContent = (s ? Math.max(0, Math.ceil(s.timeLeft)) : CFG.rondo[level].time) + 's';
-    } else {
-      const n = s ? Math.max(0, s.lives) : 3;
-      $('t-lives').textContent = t.lives;
-      lives.className = 'hearts';
-      lives.textContent = '●'.repeat(n) + '○'.repeat(3 - n);
-    }
+    const n = s ? Math.max(0, s.lives) : 3;
+    $('t-lives').textContent = t.lives;
+    lives.textContent = '●'.repeat(n) + '○'.repeat(3 - n);
     $('best').textContent = store.get(bestKey(), 0);
   }
 
@@ -1008,17 +1072,27 @@
     const b = BIBS[c];
     return `<span class="chip${no ? ' no' : ''}" style="background:${b.fill}">${T().colors[b.k]}</span>`;
   }
+  const nameChip = p => `<span class="chip" style="background:#3d8bff">${nameOf(p)}</span>`;
+  const ruleText = () => T().ruleText[isRing() ? 'ring' : 'multi'][level];
 
   function renderRule() {
     const t = T(), s = state, bar = $('rulebar');
-    if (!s) { bar.innerHTML = `<span class="lbl">${t.mode[mode]}</span><span class="tip">${t.ruleText[level]}</span>`; return; }
+    if (!s) { bar.innerHTML = `<span class="lbl">${t.mode[mode]}</span><span class="tip">${ruleText()}</span>`; return; }
     const me = s.me;
+    if (s.ring) {
+      let html;
+      if (s.holder === me || (s.ball.moving && s.ball.to === me)) {
+        const need = s.nextFor;
+        const needHtml = need ? (s.L.showNeed ? nameChip(need) : `<span class="warn">${t.unknown}</span>`) : `<span class="tip">${t.free}</span>`;
+        html = `<span class="lbl">${t.passTo}</span>${needHtml}` +
+          `<span class="tip">${s.sel ? t.picked(nameOf(s.sel)) : t.pickFirst}</span>`;
+      } else if (s.nextFor === me && s.ball.moving) html = `<span class="warn">${t.nextYou}</span>`;
+      else html = `<span class="tip">${t.listen}</span>` + (s.mode === 'rondo' ? `<span class="lbl">${t.tipRing}</span>` : '');
+      bar.innerHTML = html + `<span class="lbl">${ruleText()}</span>`;
+      return;
+    }
     if (s.holder !== me) {
-      let tip;
-      if (!meOutside()) tip = `<span class="warn">${t.tipIn}</span>`;
-      else if (s.chain) tip = `<span class="warn">${t.tipRun}</span>`;
-      else tip = `<span class="tip">${t.tipOff[s.mode]}</span>`;
-      bar.innerHTML = `${me.c >= 0 ? chip(me.c) : ''}${tip}<span class="lbl">${t.ruleText[level]}</span>`;
+      bar.innerHTML = `${chip(me.c)}<span class="tip">${t.tipOff}</span><span class="lbl">${ruleText()}</span>`;
       return;
     }
     let html = `<span class="lbl">${t.ruleLbl}</span>${chip(me.c)}`;
@@ -1027,7 +1101,7 @@
       if (s.L.back && s.prevColor != null && s.prevColor !== me.c) no.push(s.prevColor);
       html += `<span class="lbl">${t.noLbl}</span>${no.map(c => chip(c, true)).join('')}`;
     } else {
-      html += `<span class="lbl">${t.ruleText[level]}</span>`;
+      html += `<span class="lbl">${ruleText()}</span>`;
     }
     if (s.call != null) html += `<span id="call">${t.callLbl}${t.callTo(t.colors[BIBS[s.call].k])}</span>`;
     bar.innerHTML = html;
@@ -1037,14 +1111,14 @@
     const t = T(), card = $('card');
     if (kind === 'intro') {
       card.innerHTML = `<h2>${t.mode[mode]} · ${t.lv[level]}</h2><ul>${t.intro[mode].map(x => `<li>${x}</li>`).join('')}</ul>
-        <p class="ctl">${t.controls}</p>
+        <p class="ctl">${t.controls[isRing() ? 'ring' : 'multi']}</p>
         <button class="go" id="go">${t.start}</button>`;
     } else {
       const s = state, key = bestKey(), prev = store.get(key, 0), isBest = s.score > prev && !s.bestSaved;
       if (isBest) { store.set(key, s.score); s.bestSaved = true; }
-      card.innerHTML = `<h2>${t.overH}${isBest || s.bestSaved ? ' · ' + t.newBest : ''}</h2>
+      card.innerHTML = `<h2>${t.overH}${s.bestSaved ? ' · ' + t.newBest : ''}</h2>
         <p class="stat">${t.overStat(s.score, s.bestCombo, Math.max(prev, s.score))}</p>
-        <p>${t.overMore(s.stats, s.mode === 'rondo')}</p>
+        <p>${t.overMore(s.stats)}</p>
         <button class="go" id="go">${t.again}</button>`;
     }
     $('overlay').hidden = false;
@@ -1081,29 +1155,33 @@
   function setMeTarget(pt) {
     const s = state;
     const p = { x: clamp(pt.x, M, W - M), y: clamp(pt.y, M, H - M) };
-    if (s.mode === 'rondo' && !meOutside()) insideRing(p, RR - 24);
     s.meTarget = p;
   }
+
+  // 站圈模式：第一下点接球人，第二下点要喊的名字
+  function ringTap(pt) {
+    const s = state, me = s.me, holding = s.holder === me;
+    const tgt = pick(pt, me, 48);
+    if (!tgt) return;
+    if (!s.sel) { s.sel = tgt; s.queued = null; renderRule(); return; }
+    if (tgt === s.sel) { s.sel = null; s.queued = null; renderRule(); return; }
+    if (holding) myRingPass(s.sel, tgt, false);
+    else { s.queued = { a: s.sel, b: tgt }; s.sel = null; renderRule(); }
+  }
+
   let dragging = false;
   cv.addEventListener('pointerdown', e => {
     const s = state;
     if (!s || !s.running || s.freeze > 0) return;
     e.preventDefault();
     const pt = toLogical(e), me = s.me, b = s.ball;
-    if (s.holder === me) {
-      const tgt = pick(pt, me);
-      if (tgt) pass(me, tgt, false);
-      return;
-    }
-    if (b.moving && b.to === me) {
-      const tgt = pick(pt, me);
-      if (tgt) s.queued = tgt;
-      return;
-    }
-    if (b.moving && b.to.spot) {
-      // 球正传进空当：点队友＝预选一脚出球，点空地＝继续跑
-      const tgt = pick(pt, me, R_P + 16);
-      if (tgt) { s.queued = tgt; return; }
+    const meOnBall = s.holder === me || (b.moving && b.to === me);
+    if (s.ring) {
+      if (meOnBall) { ringTap(pt); return; }
+      if (s.mode !== 'rondo') return; // 传球训练里站着不动
+    } else {
+      if (s.holder === me) { const tgt = pick(pt, me); if (tgt) pass(me, tgt, false); return; }
+      if (b.moving && b.to === me) { const tgt = pick(pt, me); if (tgt) s.queued = tgt; return; }
     }
     setMeTarget(pt);
     dragging = true;
@@ -1114,7 +1192,7 @@
     if (!s) return;
     const pt = toLogical(e);
     if (dragging && s.running && s.holder !== s.me && !(s.ball.moving && s.ball.to === s.me)) setMeTarget(pt);
-    if (e.pointerType === 'mouse') s.hover = pick(pt, s.me);
+    if (e.pointerType === 'mouse') s.hover = pick(pt, s.me, 48);
   });
   const endDrag = () => { dragging = false; };
   cv.addEventListener('pointerup', endDrag);
@@ -1123,7 +1201,7 @@
   const KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's'];
   window.addEventListener('keydown', e => {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (!KEYS.includes(k) || !state || !state.running) return;
+    if (!KEYS.includes(k) || !state || !state.running || state.mode === 'call') return;
     keys.add(k); e.preventDefault();
   });
   window.addEventListener('keyup', e => { keys.delete(e.key.length === 1 ? e.key.toLowerCase() : e.key); });
