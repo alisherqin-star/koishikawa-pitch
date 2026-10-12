@@ -53,6 +53,10 @@
   .prefs input, .prefs select { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line);
                                 border-radius: 6px; padding: 5px 8px; min-width: 0; }
   .prefs input { width: 9em; }
+  .prefs input[type="range"] { width: 8em; padding: 0; accent-color: var(--accent); }
+  .prefs .lbl { color: var(--muted); font-size: 12px; }
+  .prefs output { font-family: var(--display); font-weight: 700; font-size: 16px; min-width: 2.6em;
+                  font-variant-numeric: tabular-nums; }
   .prefs select { max-width: 24em; }
   .prefs label, .prefs button { white-space: nowrap; flex: none; }
   .prefs input:focus-visible, .prefs select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -119,9 +123,9 @@
   </header>
 
   <nav class="modes">
-    <button id="md-multi" data-mode="multi" aria-pressed="true"><b>多色传球</b><span>MULTI-COLOUR</span></button>
-    <button id="md-call" data-mode="call" aria-pressed="false"><b>传球训练</b><span>CALL &amp; PASS</span></button>
+    <button id="md-call" data-mode="call" aria-pressed="true"><b>传球训练</b><span>CALL &amp; PASS</span></button>
     <button id="md-rondo" data-mode="rondo" aria-pressed="false"><b>Rondo</b><span>RONDO 6+1</span></button>
+    <button id="md-multi" data-mode="multi" aria-pressed="false"><b>多色传球</b><span>MULTI-COLOUR</span></button>
   </nav>
 
   <div class="prefs">
@@ -133,6 +137,13 @@
       <label for="voiceSel" id="t-voiceSel">声音</label>
       <select id="voiceSel"></select>
       <button id="voiceTest">试听</button>
+    </span>
+    <span class="grp">
+      <label for="tempo" id="t-tempo">传球节奏</label>
+      <span class="lbl" id="t-slow">慢</span>
+      <input id="tempo" type="range" min="0.6" max="1.5" step="0.1" value="1">
+      <span class="lbl" id="t-fast">快</span>
+      <output id="tempoVal" for="tempo">×1.0</output>
     </span>
   </div>
 
@@ -164,7 +175,7 @@
   const STR = {
     zh: {
       title: '奥西姆训练场', score: '得分', combo: '连续传球', lives: '机会', best: '最高',
-      lv: { easy: '入门', normal: '标准', osim: '奥西姆' }, langBtn: '日本語', voiceBtn: '语音', voiceNo: '这个浏览器不支持语音', myNameLbl: '你的名字', voiceLbl: '声音', voiceAuto: '自动（挑最自然的）', voiceTest: '试听', me: '你',
+      lv: { easy: '入门', normal: '标准', osim: '奥西姆' }, langBtn: '日本語', voiceBtn: '语音', voiceNo: '这个浏览器不支持语音', myNameLbl: '你的名字', voiceLbl: '声音', voiceAuto: '自动（挑最自然的）', voiceTest: '试听', tempoLbl: '传球节奏', slow: '慢', fast: '快', me: '你',
       mode: { multi: '多色传球', call: '传球训练', rondo: 'Rondo 抢圈' },
       colors: { R: '红', B: '蓝', Y: '黄', P: '紫', W: '白' },
       names: ['你', '梅西', 'C罗', '姆巴佩', '哈兰德', '莫德里奇', '德布劳内', '内马尔', '贝林厄姆'],
@@ -220,7 +231,7 @@
     },
     ja: {
       title: 'オシム式トレーニング', score: 'スコア', combo: '連続パス', lives: '残り', best: 'ベスト',
-      lv: { easy: '入門', normal: '標準', osim: 'オシム' }, langBtn: '中文', voiceBtn: '音声', voiceNo: 'このブラウザは音声に対応していません', myNameLbl: '自分の名前', voiceLbl: '声', voiceAuto: '自動（いちばん自然な声）', voiceTest: '試聴', me: '自分',
+      lv: { easy: '入門', normal: '標準', osim: 'オシム' }, langBtn: '中文', voiceBtn: '音声', voiceNo: 'このブラウザは音声に対応していません', myNameLbl: '自分の名前', voiceLbl: '声', voiceAuto: '自動（いちばん自然な声）', voiceTest: '試聴', tempoLbl: 'パスのテンポ', slow: '遅', fast: '速', me: '自分',
       mode: { multi: '多色パス', call: 'パス練習', rondo: 'ロンド（鳥かご）' },
       colors: { R: '赤', B: '青', Y: '黄', P: '紫', W: '白' },
       names: ['キミ', 'メッシ', 'ロナウド', 'エムバペ', 'ハーランド', 'モドリッチ', 'デブライネ', 'ネイマール', 'ベリンガム'],
@@ -314,12 +325,27 @@
 
   let lang = store.get('lang', (navigator.language || '').startsWith('ja') ? 'ja' : 'zh');
   if (!STR[lang]) lang = 'zh';
-  let mode = store.get('mode', 'multi');
+  let mode = store.get('mode', 'call');
   if (mode === 'pass') mode = 'call';
-  if (!CFG[mode]) mode = 'multi';
+  if (!CFG[mode]) mode = 'call';
   let level = store.get('level', 'normal');
   if (!CFG.multi[level]) level = 'normal';
   let soundOn = store.get('sound', true);
+  let tempo = clampTempo(store.get('tempo', 1));
+  function clampTempo(v) { v = Math.round(Number(v) * 10) / 10; return v >= 0.6 && v <= 1.5 ? v : 1; }
+
+  // 传球节奏：k > 1 更快更难。队友持球时间、你能持球的时间、球速、防守速度一起按比例变
+  function tunedCfg() {
+    const base = CFG[mode][level], k = tempo, L = { ...base };
+    L.aiHold = base.aiHold.map(v => v / k);
+    L.touch = base.touch / k; L.minTouch = base.minTouch / k;
+    if (base.df) L.df = base.df * k;
+    if (base.aiMax) L.aiMax = base.aiMax / k;
+    if (base.pressDelay) L.pressDelay = base.pressDelay / k;
+    if (base.bubble) L.bubble = base.bubble / Math.sqrt(k);
+    BALL_SPEED = 760 * (0.7 + 0.3 * k);
+    return L;
+  }
   let voiceOn = store.get('voice', true);
   const T = () => STR[lang];
   const bestKey = () => `best.${mode}.${level}`;
@@ -332,7 +358,8 @@
   const FONT = getComputedStyle(document.body).fontFamily;
   let W = 1000, H = 620, scale = 1, dpr = 1, CX = 500, CY = 310, RR = 250;
   const M = 44; // 场地内边距（标志桶位置）
-  const R_P = 17, R_BALL = 7, BALL_SPEED = 760, ME_SPEED = 200;
+  const R_P = 17, R_BALL = 7, ME_SPEED = 200;
+  let BALL_SPEED = 760; // 随传球节奏变化
 
   function resize() {
     const cssW = stage.clientWidth;
@@ -461,7 +488,7 @@
   }
 
   function newGame() {
-    const L = CFG[mode][level], ring = isRing();
+    const L = tunedCfg(), ring = isRing();
     const mates = [], defs = [];
     if (ring) {
       // 名字随语言变，所以只存序号。0 是你，其余每局从 8 名球员里随机挑
@@ -484,7 +511,9 @@
       mates.forEach(retarget);
       mates[0].x = W / 2; mates[0].y = H * 0.62;
       for (let i = 0; i < L.defs; i++) {
-        defs.push({ id: nextId++, c: -1, x: rand(M, W - M), y: rand(M, H * 0.35), vx: 0, vy: 0, role: i === 0 ? 'press' : 'lane' });
+        // 每个防守速度、反应快慢都不一样，免得一起动
+        defs.push({ id: nextId++, c: -1, x: M + (i + 0.5) * (W - 2 * M) / L.defs, y: rand(M, H * 0.35), vx: 0, vy: 0,
+                    role: i === 0 ? 'press' : 'lane', spdMul: rand(0.9, 1.08), react: rand(0.14, 0.32), think: 0, tx: 0, ty: 0, spd: L.df });
       }
     }
     const me = mates[0];
@@ -966,7 +995,14 @@
         if (dist(d, { x: CX, y: CY }) < RR - 40) d.seated = true;
         return;
       }
-      if (frozen) { d.vx *= 0.9; d.vy *= 0.9; d.x += d.vx * dt; d.y += d.vy * dt; return; }
+      if (frozen) { d.vx *= 0.9; d.vy *= 0.9; d.x += d.vx * dt; d.y += d.vy * dt; d.think = 0; return; }
+      if (!ring) {
+        // 多色传球：隔一小段反应时间才重新判断一次去哪
+        d.think -= dt;
+        if (d.think <= 0) { d.think = d.react * rand(0.8, 1.2); planMultiDef(d); }
+        steer(d, d.tx, d.ty, d.spd, dt);
+        return;
+      }
       let tx = d.x, ty = d.y, spd = L.df;
       const b = s.ball;
       if (b.moving) {
@@ -999,6 +1035,80 @@
       steer(d, tx, ty, spd, dt);
       if (ring) insideRing(d, RR - 24);
     });
+  }
+
+  // ---------- 多色传球的防守分工 ----------
+  // 球在路上：只有赶得上的那个人去断，逼抢的人提前去接球人身边，其余各封一条线路
+  function chaserFor(b) {
+    const s = state, to = b.to, len = dist(b, to);
+    let best = null, bestD = Infinity;
+    for (const d of s.defs) {
+      const { d: dd, t } = segDist(d, b, to);
+      const tBall = t * len / BALL_SPEED;
+      const need = Math.max(0, dd - (R_P + R_BALL - 2)) / (s.L.df * 1.15 * d.spdMul);
+      if (need <= tBall + 0.12 && dd < bestD) { bestD = dd; best = d; }
+    }
+    return best;
+  }
+
+  // 每个封线路的防守有自己的区域（把场地横向分开），只挑自己那一侧的线路去封
+  function zoneOf(d) {
+    const lanes = state.defs.filter(o => o.role !== 'press');
+    const k = lanes.indexOf(d), n = lanes.length;
+    return { x: M + (k + 0.5) * (W - 2 * M) / Math.max(1, n), y: H / 2 };
+  }
+
+  // h 持球（或马上要持球）时，各防守分到的线路点；prevC 是传给 h 的人的颜色
+  function laneAssign(h, prevC, skip) {
+    const s = state;
+    const legal = s.mates.filter(m => m !== h && m.c !== h.c && !(s.L.back && m.c === prevC));
+    const lanes = legal.map(m => ({ x: h.x + (m.x - h.x) * 0.6, y: h.y + (m.y - h.y) * 0.6 }));
+    const out = new Map(), used = new Set();
+    for (const d of s.defs) {
+      if (d.role === 'press' || d === skip) continue;
+      const z = zoneOf(d);
+      let bi = -1, bd = Infinity;
+      // 离自己区域近、自己又赶得到的线路优先
+      lanes.forEach((p, k) => { const sc = dist(z, p) + 0.5 * dist(d, p); if (!used.has(k) && sc < bd) { bd = sc; bi = k; } });
+      if (bi >= 0) { used.add(bi); out.set(d, lanes[bi]); }
+      else out.set(d, z);
+    }
+    return out;
+  }
+
+  function planMultiDef(d) {
+    const s = state, L = s.L, b = s.ball;
+    d.spd = L.df * d.spdMul;
+    let tgt = null;
+    if (b.moving) {
+      const to = b.to, chaser = chaserFor(b);
+      if (d === chaser) {
+        const { t } = segDist(d, b, to), tt = Math.max(t, 0.25);
+        tgt = { x: b.x + (to.x - b.x) * tt, y: b.y + (to.y - b.y) * tt };
+        d.spd *= 1.15;
+      } else if (d.role === 'press') {
+        tgt = to;
+      } else {
+        tgt = laneAssign(to, b.from.c, chaser).get(d);
+      }
+    } else if (s.holder) {
+      const h = s.holder;
+      if (d.role === 'press') {
+        tgt = h;
+        d.spd *= 0.9 + Math.min(s.holdT, 2) * 0.25;
+      } else {
+        tgt = laneAssign(h, s.prevColor, null).get(d);
+      }
+    }
+    if (!tgt) tgt = d;
+    // 和别的防守保持距离，别挤成一团
+    let x = tgt.x, y = tgt.y;
+    for (const o of s.defs) {
+      if (o === d) continue;
+      const dx = x - o.tx, dy = y - o.ty, dd = Math.hypot(dx, dy);
+      if (dd < 150 && dd > 0.01) { x += dx / dd * (150 - dd) * 0.7; y += dy / dd * (150 - dd) * 0.7; }
+    }
+    d.tx = clamp(x, M, W - M); d.ty = clamp(y, M, H - M);
   }
 
   function update(dt) {
@@ -1422,6 +1532,7 @@
     $('voice').textContent = t.voiceBtn;
     $('t-myName').textContent = t.myNameLbl; $('t-voiceSel').textContent = t.voiceLbl;
     $('voiceTest').textContent = t.voiceTest;
+    $('t-tempo').textContent = t.tempoLbl; $('t-slow').textContent = t.slow; $('t-fast').textContent = t.fast;
     $('myName').placeholder = t.names[0];
     fillVoices();
     if (!canSpeak) $('voice').title = t.voiceNo;
@@ -1461,6 +1572,18 @@
   $('voiceSel').addEventListener('change', e => { store.set('voice.' + lang, e.target.value); speak(nameOf({ ni: 1 }) + '！', { force: true }); });
   $('voiceTest').addEventListener('click', () => speak(nameOf({ ni: 0 }) + '！', { force: true, pitch: voicePitch({ ni: 2 }), rate: 1.15 }));
   $('myName').value = myName;
+  $('tempo').value = tempo;
+  $('tempoVal').textContent = '×' + tempo.toFixed(1);
+  $('tempo').addEventListener('input', e => {
+    tempo = clampTempo(e.target.value); store.set('tempo', tempo);
+    $('tempoVal').textContent = '×' + tempo.toFixed(1);
+    // 训练中也立刻生效
+    if (state) {
+      const frac = state.touch / state.L.touch;
+      state.L = tunedCfg();
+      state.touch = state.L.touch * frac;
+    }
+  });
   $('myName').addEventListener('input', e => {
     myName = e.target.value.trim().slice(0, 8); store.set('myname', myName);
     renderRule();
