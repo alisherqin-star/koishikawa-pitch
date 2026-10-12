@@ -180,12 +180,13 @@
           '几个人站成一圈，你是标着「你」的红衣球员，整局都是你。',
           '传球时要喊出接球人下一脚传给谁：先点接球人，再点要喊的名字，球就传出去了。',
           '别人喊到谁，接球的人就必须传给谁。球传到你脚下时，你也只能传给喊给你的那个人。',
+          '队友喊的名字只用语音念出来，屏幕上不提示，要竖起耳朵听（关掉语音时才显示文字气泡）。',
           '球还在路上时就可以先点好接球人和名字，接到后一脚出球，加分更多。',
           '传错人、持球太久都会丢一次机会，共 3 次。奥西姆难度：不能喊接球人旁边的人，名字只闪一下，圈上的人还会换位置。'
         ],
         rondo: [
-          '和传球训练一样站圈、传球、喊名字，只是圈中间多了一个逼抢的人。',
-          '他会去逼接球的人。喊名字时要看清他往哪跑，喊一个他封不到的人；持球太久会被抢走。',
+          '和传球训练一样站圈、传球、喊名字，只是圈中间多了一个逼抢的人。队友喊的名字只用语音念出来。',
+          '他会站到接球人身前施压。喊名字时要喊他封不到的人；持球太久他会贴上来抢。',
           '你传错人、持球太久、被断或被抢，都会丢一次机会，共 3 次。你一直留在圈上。',
           '队友丢球时，他和逼抢的人换位：逼抢的人站到圈上，丢球的人进圈。',
           '没球时可以点圈附近挪位置，给持球人让出线路。'
@@ -206,7 +207,7 @@
       },
       tipOff: '跑到空当，等队友传给你',
       pickFirst: '先点接球人，再点要喊的名字',
-      picked: n => `接球人：${n} → 再点要喊的名字`, nextYou: '下一脚传给你！准备', listen: '听名字，看清楚球会去哪',
+      picked: n => `接球人：${n} → 再点要喊的名字`, listen: '听名字，看清楚球会去哪',
       tipRing: '没球时可以点圈附近挪位置',
       callLbl: '教练：', callTo: c => `下一脚 → ${c}！`,
       fault: { same: '同色传球！', back: '传回了上一个颜色！', call: '没听教练的指示！', slow: '持球太久！',
@@ -235,12 +236,13 @@
           '円になって立つ。頭に「自分」と出ている赤ビブスがあなたで、最後まで同じ選手をプレーする。',
           'パスを出すときに、受け手が次に出す相手の名前を叫ぶ。まず受け手をタップし、続けて叫ぶ名前の選手をタップするとパスが出る。',
           '名前を呼ばれた選手に必ずパスする。自分にボールが来たら、自分に向けて叫ばれた選手にしか出せない。',
+          '味方が叫ぶ名前は音声だけで、画面には出ない。耳で聞き取ること（音声をオフにしたときだけ吹き出しで表示）。',
           'ボールが転がっている間に受け手と名前を選んでおけば、受けた瞬間にダイレクトで出せて高得点。',
           'パス先を間違える・持ちすぎで1つ失う（3回まで）。オシム：受け手の隣は呼べない、名前は一瞬しか出ない、円の選手が入れ替わる。'
         ],
         rondo: [
-          'パス練習と同じく円でパスを回して名前を叫ぶ。ただし真ん中に鬼が1人入る。',
-          '鬼は受け手に寄せていく。鬼の動きを見て、コースを切られない選手の名前を呼ぶこと。持ちすぎると奪われる。',
+          'パス練習と同じく円でパスを回して名前を叫ぶ。ただし真ん中に鬼が1人入る。味方が叫ぶ名前は音声だけ。',
+          '鬼は受け手の前に立って寄せてくる。鬼に切られないコースの選手の名前を呼ぶこと。持ちすぎると寄せきられて奪われる。',
           'パス先を間違える・持ちすぎ・カット・奪われたら1つ失う（3回まで）。自分はずっと円の上にいる。',
           '味方が奪われたら、その味方と鬼が入れ替わる。',
           'ボールがないときは、円の近くをタップして位置をずらし、パスコースを作れる。'
@@ -261,7 +263,7 @@
       },
       tipOff: '空いている所へ動いて、パスを引き出す',
       pickFirst: '受け手をタップ → 叫ぶ名前をタップ',
-      picked: n => `受け手：${n} → 叫ぶ名前をタップ`, nextYou: '次は自分に来る！準備', listen: '名前を聞いて、ボールの行き先を読む',
+      picked: n => `受け手：${n} → 叫ぶ名前をタップ`, listen: '名前を聞いて、ボールの行き先を読む',
       tipRing: 'ボールがないときは円の近くをタップして動ける',
       callLbl: 'コーチ：', callTo: c => `次は ${c}！`,
       fault: { same: '同じ色にパス！', back: '直前の色に返した！', call: 'コールを聞いてない！', slow: '持ちすぎ！',
@@ -284,7 +286,8 @@
 
   // 每个练习 × 难度的参数。df: 防守速度，aiHold: 队友持球时间，feed: 队友传给（或喊）你的概率，
   // n: 圈上人数，noNb: 不能喊接球人旁边的人，bubble: 喊名字显示几秒，
-  // aiMax: Rondo 里线路被封时队友最多等多久，err: 队友不看线路乱喊的概率
+  // aiMax: Rondo 里线路被封时队友最多等多久，err: 队友不看线路乱喊的概率，
+  // press: 逼抢的人先站在接球人身前多远，pressDelay: 接球后过多久开始贴身逼抢
   const CFG = {
     multi: {
       easy:   { colors: 3, per: 3, defs: 1, touch: 3.2, minTouch: 2.2, back: false, calls: false, hints: true,  df: 95,  aiHold: [0.6, 1.1], feed: 0.5,  lives: 3 },
@@ -297,9 +300,9 @@
       osim:   { n: 6, defs: 0, touch: 2.4, minTouch: 1.6, aiHold: [0.4, 0.65], feed: 0.4, hints: false, noNb: true,  shuffle: true,  bubble: 0.8, lives: 3 }
     },
     rondo: {
-      easy:   { n: 6, defs: 1, df: 90,  touch: 4.0, minTouch: 3.0, aiHold: [0.6, 0.9],  aiMax: 1.6, feed: 0.45, hints: true,  noNb: false, bubble: 1.8,  err: 0.3,  lives: 3 },
-      normal: { n: 6, defs: 1, df: 115, touch: 3.0, minTouch: 2.2, aiHold: [0.45, 0.75], aiMax: 1.4, feed: 0.5, hints: false, noNb: false, bubble: 1.3,  err: 0.2,  lives: 3 },
-      osim:   { n: 6, defs: 1, df: 135, touch: 2.4, minTouch: 1.8, aiHold: [0.3, 0.6],  aiMax: 1.2, feed: 0.5, hints: false, noNb: true,  bubble: 0.8, err: 0.12, lives: 3 }
+      easy:   { n: 6, defs: 1, df: 90,  touch: 4.0, minTouch: 3.0, aiHold: [0.6, 0.9],  aiMax: 1.6, feed: 0.45, hints: true,  noNb: false, bubble: 1.8,  err: 0.3,  press: 80, pressDelay: 2.0, lives: 3 },
+      normal: { n: 6, defs: 1, df: 115, touch: 3.0, minTouch: 2.2, aiHold: [0.45, 0.75], aiMax: 1.4, feed: 0.5, hints: false, noNb: false, bubble: 1.3,  err: 0.2,  press: 74, pressDelay: 1.4, lives: 3 },
+      osim:   { n: 6, defs: 1, df: 135, touch: 2.4, minTouch: 1.8, aiHold: [0.3, 0.6],  aiMax: 1.2, feed: 0.5, hints: false, noNb: false, bubble: 0.8, err: 0.12, press: 70, pressDelay: 0.9, lives: 3 }
     }
   };
 
@@ -317,7 +320,7 @@
   let level = store.get('level', 'normal');
   if (!CFG.multi[level]) level = 'normal';
   let soundOn = store.get('sound', true);
-  let voiceOn = store.get('voice', false);
+  let voiceOn = store.get('voice', true);
   const T = () => STR[lang];
   const bestKey = () => `best.${mode}.${level}`;
   const isRing = () => mode !== 'multi';
@@ -648,6 +651,13 @@
     return d === 1 || d === n - 1;
   }
 
+  // Rondo 逼抢的人的站位：在 p 和圈心之间，离 p 有一段距离；持球超过 pressDelay 后逐渐贴上去
+  function pressPoint(p, holdT) {
+    const L = state.L, dx = CX - p.x, dy = CY - p.y, d = Math.hypot(dx, dy) || 1;
+    const k = Math.max(R_P * 2, L.press - Math.max(0, holdT - L.pressDelay) * L.df * 0.8);
+    return { x: p.x + dx / d * k, y: p.y + dy / d * k };
+  }
+
   // 传球线路的安全余量：>0 表示防守来不及断
   function laneSafety(a, b, defs) {
     const s = state, len = dist(a, b);
@@ -685,7 +695,9 @@
     if (s.ring) {
       s.nextFor = call || null; s.nextBy = from;
       if (call) {
-        bubble(from, call); sfx.shout();
+        // 队友喊的名字只用语音，不在画面上提示；关掉语音（或浏览器不支持）时才显示气泡
+        if (from.isMe || !voiceOn || !canSpeak) bubble(from, call);
+        sfx.shout();
         // 喊到你时语气更急一点
         speak(nameOf(call) + '！', { pitch: voicePitch(from), rate: call.isMe ? 1.15 : 1.08 });
       }
@@ -734,14 +746,12 @@
     if (s.L.noNb) cands = cands.filter(m => !isNeighbor(target, m));
     if (!cands.length) cands = s.mates.filter(m => m !== target);
     let call;
-    if (s.defs.length && Math.random() >= (s.L.err || 0)) {
-      // 预判逼抢的人：他会朝接球人跑，等接球人出球时大概跑到哪
-      const flight = dist(h, target) / BALL_SPEED + 0.35;
-      const predicted = s.defs.map(d => {
-        const dd = dist(d, target), step = Math.min(dd - R_P * 2, s.L.df * flight);
-        return dd > 1 ? { x: d.x + (target.x - d.x) / dd * Math.max(0, step), y: d.y + (target.y - d.y) / dd * Math.max(0, step) } : d;
-      });
-      const ok = cands.filter(m => laneSafety(target, m, predicted) > 18);
+    // 偶尔乱喊只发生在队友之间；喊给你的名字一定是能传过去的
+    if (s.defs.length && (target.isMe || Math.random() >= (s.L.err || 0))) {
+      // 逼抢的人会站到接球人身前（见 pressPoint），只喊那个位置封不到的人。
+      // 这样接球人马上照喊的名字传就不会被断；拖久了被贴身才有危险。
+      const predicted = s.defs.map(() => pressPoint(target, 0));
+      const ok = cands.filter(m => laneSafety(target, m, predicted) > 8);
       if (ok.length) cands = ok;
     }
     const meCand = cands.includes(me);
@@ -942,8 +952,9 @@
       if (b.moving) {
         const to = b.to, near = segDist(d, b, to);
         if (ring && near.d > 90) {
-          // 断不到这一脚，就去逼接球的人
-          tx = to.x; ty = to.y;
+          // 断不到这一脚，就去接球人身前站好
+          const pp = pressPoint(to, 0);
+          tx = pp.x; ty = pp.y;
         } else {
           // 追向传球路线上的前方点
           const tt = Math.max(near.t, 0.25);
@@ -951,8 +962,9 @@
           spd *= 1.15;
         }
       } else if (s.holder && ring) {
-        // 直接逼持球人，持球越久逼得越快
-        tx = s.holder.x; ty = s.holder.y;
+        // 先在持球人身前站住，持球久了再贴上去抢
+        const pp = pressPoint(s.holder, s.holdT);
+        tx = pp.x; ty = pp.y;
         spd *= 0.9 + Math.min(s.holdT, 2) * 0.2;
       } else if (s.holder && d.role === 'press') {
         tx = s.holder.x; ty = s.holder.y;
@@ -1254,8 +1266,7 @@
       let html;
       if (s.holder === me || (s.ball.moving && s.ball.to === me)) {
         html = `<span class="tip">${s.sel ? t.picked(nameOf(s.sel)) : t.pickFirst}</span>`;
-      } else if (s.nextFor === me && s.ball.moving) html = `<span class="warn">${t.nextYou}</span>`;
-      else html = `<span class="tip">${t.listen}</span>` + (s.mode === 'rondo' ? `<span class="lbl">${t.tipRing}</span>` : '');
+      } else html = `<span class="tip">${t.listen}</span>` + (s.mode === 'rondo' ? `<span class="lbl">${t.tipRing}</span>` : '');
       bar.innerHTML = html + `<span class="lbl">${ruleText()}</span>`;
       return;
     }
