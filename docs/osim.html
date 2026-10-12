@@ -45,6 +45,18 @@
   .modes span { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
   .modes button[aria-pressed="true"] span { color: var(--ink); opacity: .7; }
 
+  .prefs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
+  .prefs .grp { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .prefs .grow { flex: 1 1 260px; }
+  .prefs .grow select { flex: 1 1 auto; }
+  .prefs label { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+  .prefs input, .prefs select { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+                                border-radius: 6px; padding: 5px 8px; min-width: 0; }
+  .prefs input { width: 9em; }
+  .prefs select { max-width: 24em; }
+  .prefs label, .prefs button { white-space: nowrap; flex: none; }
+  .prefs input:focus-visible, .prefs select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
   .board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line);
            border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
   .board div { background: var(--panel); padding: 6px 10px; display: flex; flex-direction: column; min-width: 0; }
@@ -112,6 +124,18 @@
     <button id="md-rondo" data-mode="rondo" aria-pressed="false"><b>Rondo</b><span>RONDO 6+1</span></button>
   </nav>
 
+  <div class="prefs">
+    <span class="grp">
+      <label for="myName" id="t-myName">你的名字</label>
+      <input id="myName" maxlength="8" autocomplete="nickname" placeholder="你">
+    </span>
+    <span class="grp grow">
+      <label for="voiceSel" id="t-voiceSel">声音</label>
+      <select id="voiceSel"></select>
+      <button id="voiceTest">试听</button>
+    </span>
+  </div>
+
   <div class="board" aria-live="polite">
     <div><span id="t-score">得分</span><b id="score">0</b></div>
     <div><span id="t-combo">连续传球</span><b id="combo">0</b></div>
@@ -140,7 +164,7 @@
   const STR = {
     zh: {
       title: '奥西姆训练场', score: '得分', combo: '连续传球', lives: '机会', best: '最高',
-      lv: { easy: '入门', normal: '标准', osim: '奥西姆' }, langBtn: '日本語', voiceBtn: '语音', voiceNo: '这个浏览器不支持语音', me: '你',
+      lv: { easy: '入门', normal: '标准', osim: '奥西姆' }, langBtn: '日本語', voiceBtn: '语音', voiceNo: '这个浏览器不支持语音', myNameLbl: '你的名字', voiceLbl: '声音', voiceAuto: '自动（挑最自然的）', voiceTest: '试听', me: '你',
       mode: { multi: '多色传球', call: '传球训练', rondo: 'Rondo 抢圈' },
       colors: { R: '红', B: '蓝', Y: '黄', P: '紫', W: '白' },
       names: ['你', '梅西', 'C罗', '姆巴佩', '哈兰德', '莫德里奇', '德布劳内', '内马尔', '贝林厄姆'],
@@ -195,7 +219,7 @@
     },
     ja: {
       title: 'オシム式トレーニング', score: 'スコア', combo: '連続パス', lives: '残り', best: 'ベスト',
-      lv: { easy: '入門', normal: '標準', osim: 'オシム' }, langBtn: '中文', voiceBtn: '音声', voiceNo: 'このブラウザは音声に対応していません', me: '自分',
+      lv: { easy: '入門', normal: '標準', osim: 'オシム' }, langBtn: '中文', voiceBtn: '音声', voiceNo: 'このブラウザは音声に対応していません', myNameLbl: '自分の名前', voiceLbl: '声', voiceAuto: '自動（いちばん自然な声）', voiceTest: '試聴', me: '自分',
       mode: { multi: '多色パス', call: 'パス練習', rondo: 'ロンド（鳥かご）' },
       colors: { R: '赤', B: '青', Y: '黄', P: '紫', W: '白' },
       names: ['キミ', 'メッシ', 'ロナウド', 'エムバペ', 'ハーランド', 'モドリッチ', 'デブライネ', 'ネイマール', 'ベリンガム'],
@@ -375,19 +399,53 @@
 
   // ---------- AI 语音：用浏览器自带的语音合成念出喊的名字 ----------
   const canSpeak = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-  function speak(text, primer) {
-    if (!canSpeak || !voiceOn) return;
+  const langCode = () => (lang === 'ja' ? 'ja-JP' : 'zh-CN');
+  function langVoices() {
+    if (!canSpeak) return [];
+    const pre = langCode().slice(0, 2);
+    return window.speechSynthesis.getVoices().filter(v => (v.lang || '').replace('_', '-').toLowerCase().startsWith(pre));
+  }
+  // 给声音打分：神经网络 / 增强版的声音最自然，男声更像球场上的喊声，机械感重的往后排
+  function voiceScore(v) {
+    const n = v.name || '';
+    let sc = 0;
+    if (/Natural|Neural|Premium|Enhanced|Siri|高品質|高音質/i.test(n)) sc += 10;
+    if (/Online|Google/i.test(n)) sc += 4;
+    if (/Yunxi|Yunyang|Yunjian|Yunhao|Yunze|Keita|Naoki|Daichi|Otoya|Hattori|Ichiro|Li-mu|Kangkang|Yu-shu/i.test(n)) sc += 3;
+    if (/compact|eSpeak|Grandpa|Grandma|Bubbles|Bells|Zarvox|Whisper/i.test(n)) sc -= 20;
+    if (/zh-CN|ja-JP/i.test(v.lang)) sc += 1;
+    return sc;
+  }
+  function pickVoice() {
+    const list = langVoices();
+    const want = store.get('voice.' + lang, '');
+    return list.find(v => v.name === want) || list.sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null;
+  }
+  // pitch：每个队友音高略有不同，听起来像不同的人
+  function speak(text, opts = {}) {
+    if (!canSpeak || (!voiceOn && !opts.force)) return;
     try {
       const synth = window.speechSynthesis;
       synth.cancel(); // 只念最新的一句，免得和画面对不上
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang === 'ja' ? 'ja-JP' : 'zh-CN';
-      const v = synth.getVoices().find(x => x.lang && x.lang.replace('_', '-').startsWith(u.lang.slice(0, 2)));
-      if (v) u.voice = v;
-      u.rate = 1.25;
-      if (primer) u.volume = 0; // 手机浏览器要在点击里先念一次才肯出声
+      u.lang = langCode();
+      const v = pickVoice();
+      if (v) { u.voice = v; u.lang = v.lang; }
+      u.rate = opts.rate || 1.08;
+      u.pitch = opts.pitch || 1;
+      if (opts.primer) u.volume = 0; // 手机浏览器要在点击里先念一次才肯出声
       synth.speak(u);
     } catch { /* ignore */ }
+  }
+  const voicePitch = p => 0.88 + ((p.ni * 37) % 25) / 100;
+
+  function fillVoices() {
+    const sel = document.getElementById('voiceSel'), t = T(), list = langVoices();
+    const want = store.get('voice.' + lang, '');
+    sel.innerHTML = `<option value="">${t.voiceAuto}</option>` +
+      list.sort((a, b) => voiceScore(b) - voiceScore(a))
+        .map(v => `<option value="${v.name.replace(/"/g, '&quot;')}">${v.name.replace(/</g, '&lt;')}</option>`).join('');
+    sel.value = list.some(v => v.name === want) ? want : '';
   }
 
   // ---------- 游戏状态 ----------
@@ -437,7 +495,8 @@
     updateHud();
   }
 
-  const nameOf = p => T().names[p.ni] || '?';
+  let myName = String(store.get('myname', '')).slice(0, 8);
+  const nameOf = p => (p.ni === 0 && myName) || T().names[p.ni] || '?';
 
   // ---------- 球员头像 ----------
   // 从维基百科取条目主图（自由许可的照片），在浏览器里裁成圆形头像，并在页脚注明作者和许可证。
@@ -601,10 +660,11 @@
     return m;
   }
 
-  function bubble(p, text) {
+  // 气泡里存被喊的人，画的时候再取名字，切换语言也能跟着变
+  function bubble(p, who) {
     const s = state;
     s.bubbles = s.bubbles.filter(b => b.p !== p);
-    s.bubbles.push({ p, text, t: 0, life: s.L.bubble || 1.2 });
+    s.bubbles.push({ p, who, t: 0, life: s.L.bubble || 1.2 });
   }
 
   // call：接球人下一脚要传给的人（站圈模式）
@@ -624,7 +684,11 @@
     to.vx = to.vy = 0;
     if (s.ring) {
       s.nextFor = call || null; s.nextBy = from;
-      if (call) { bubble(from, nameOf(call) + '！'); sfx.shout(); speak(nameOf(call)); }
+      if (call) {
+        bubble(from, call); sfx.shout();
+        // 喊到你时语气更急一点
+        speak(nameOf(call) + '！', { pitch: voicePitch(from), rate: call.isMe ? 1.15 : 1.08 });
+      }
     }
     sfx.kick();
     renderRule();
@@ -1059,15 +1123,15 @@
   }
 
   function drawBubble(b) {
-    const p = b.p, a = Math.min(1, (b.life - b.t) / 0.25);
+    const p = b.p, a = Math.min(1, (b.life - b.t) / 0.25), text = nameOf(b.who) + '！';
     ctx.globalAlpha = a;
     ctx.font = '800 17px ' + FONT;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    const w = ctx.measureText(b.text).width + 16, y = p.y - R_P - (p.isMe ? 46 : 24);
+    const w = ctx.measureText(text).width + 16, y = p.y - R_P - (p.isMe ? 46 : 24);
     ctx.fillStyle = '#ffffff';
     roundRect(p.x - w / 2, y - 13, w, 26, 8); ctx.fill();
     ctx.beginPath(); ctx.moveTo(p.x - 6, y + 12); ctx.lineTo(p.x + 6, y + 12); ctx.lineTo(p.x, y + 20); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#111'; ctx.fillText(b.text, p.x, y + 1);
+    ctx.fillStyle = '#111'; ctx.fillText(text, p.x, y + 1);
     ctx.globalAlpha = 1;
   }
 
@@ -1239,7 +1303,7 @@
   function start() {
     $('overlay').hidden = true;
     try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch { /* ignore */ }
-    speak(' ', true);
+    speak(' ', { primer: true });
     newGame();
   }
 
@@ -1306,6 +1370,7 @@
   const KEYS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'a', 'd', 'w', 's'];
   window.addEventListener('keydown', e => {
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
     if (!KEYS.includes(k) || !state || !state.running || state.mode === 'call') return;
     keys.add(k); e.preventDefault();
   });
@@ -1324,6 +1389,10 @@
     for (const k of Object.keys(CFG)) $('md-' + k).querySelector('b').textContent = t.mode[k];
     $('lang').textContent = t.langBtn;
     $('voice').textContent = t.voiceBtn;
+    $('t-myName').textContent = t.myNameLbl; $('t-voiceSel').textContent = t.voiceLbl;
+    $('voiceTest').textContent = t.voiceTest;
+    $('myName').placeholder = t.names[0];
+    fillVoices();
     if (!canSpeak) $('voice').title = t.voiceNo;
     $('t-foot').innerHTML = t.foot;
     renderCredits();
@@ -1353,10 +1422,18 @@
   $('voice').addEventListener('click', () => {
     voiceOn = canSpeak && !voiceOn; store.set('voice', voiceOn);
     $('voice').setAttribute('aria-pressed', String(voiceOn));
-    if (voiceOn) speak(nameOf({ ni: 1 }));
+    if (voiceOn) speak(nameOf({ ni: 1 }) + '！');
     else if (canSpeak) window.speechSynthesis.cancel();
   });
-  if (!canSpeak) { voiceOn = false; $('voice').disabled = true; }
+  if (!canSpeak) { voiceOn = false; $('voice').disabled = true; $('voiceSel').disabled = true; $('voiceTest').disabled = true; }
+  else window.speechSynthesis.addEventListener('voiceschanged', fillVoices);
+  $('voiceSel').addEventListener('change', e => { store.set('voice.' + lang, e.target.value); speak(nameOf({ ni: 1 }) + '！', { force: true }); });
+  $('voiceTest').addEventListener('click', () => speak(nameOf({ ni: 0 }) + '！', { force: true, pitch: voicePitch({ ni: 2 }), rate: 1.15 }));
+  $('myName').value = myName;
+  $('myName').addEventListener('input', e => {
+    myName = e.target.value.trim().slice(0, 8); store.set('myname', myName);
+    renderRule();
+  });
   $('voice').setAttribute('aria-pressed', String(voiceOn));
 
   // ---------- 主循环 ----------
