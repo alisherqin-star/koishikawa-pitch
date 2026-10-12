@@ -1,0 +1,746 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>奥西姆多色传球</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&display=swap">
+<style>
+  /* Layout: night training session — a floodlit pitch fills the screen, scoreboard strip above, coach's call below. */
+  :root {
+    --bg: #0d1712;
+    --panel: #15241c;
+    --fg: #e6efe8;
+    --muted: #8ea597;
+    --chalk: #f4f7f2;
+    --accent: #f5c518;
+    --danger: #ff6b5e;
+    --good: #5fd68b;
+    --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+    --body: system-ui, -apple-system, "PingFang SC", "Hiragino Sans", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 14px;
+         -webkit-tap-highlight-color: transparent; }
+  .wrap { box-sizing: border-box; max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 20px;
+          display: flex; flex-direction: column; gap: 10px; min-height: 100%; }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  h1 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 26px; letter-spacing: .02em;
+       text-wrap: balance; }
+  h1 small { font-weight: 500; font-size: 15px; color: var(--muted); margin-left: 8px; letter-spacing: .06em; }
+  .ctrls { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid #2c4436; border-radius: 6px;
+           padding: 6px 12px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button[aria-pressed="true"] { background: var(--accent); color: #1b1600; border-color: var(--accent); font-weight: 700; }
+
+  .board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #2c4436;
+           border: 1px solid #2c4436; border-radius: 8px; overflow: hidden; }
+  .board div { background: var(--panel); padding: 6px 10px; display: flex; flex-direction: column; min-width: 0; }
+  .board span { font-size: 11px; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .board b { font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1.05;
+             font-variant-numeric: tabular-nums; }
+  #lives { color: var(--danger); letter-spacing: .1em; }
+
+  .stage { position: relative; border-radius: 10px; overflow: hidden; background: #1d5a33;
+           box-shadow: 0 0 0 1px #2c4436, 0 12px 40px rgba(0,0,0,.45); touch-action: none; }
+  canvas { display: block; width: 100%; height: auto; cursor: crosshair; }
+  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+             background: rgba(8, 16, 11, .72); padding: 16px; }
+  .card { max-width: 520px; background: var(--panel); border: 1px solid #2c4436; border-radius: 10px;
+          padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .card h2 { margin: 0; font-family: var(--display); font-size: 30px; font-weight: 800; text-wrap: balance; }
+  .card p, .card li { margin: 0; line-height: 1.6; color: var(--fg); }
+  .card ul { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+  .card .go { align-self: flex-start; background: var(--accent); color: #1b1600; border-color: var(--accent);
+              font-weight: 800; font-size: 16px; padding: 8px 22px; }
+  .card .stat { font-family: var(--display); font-size: 20px; color: var(--accent); }
+
+  .rule { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-height: 34px;
+          padding: 6px 12px; background: var(--panel); border-radius: 8px; border: 1px solid #2c4436; }
+  .rule .lbl { color: var(--muted); font-size: 12px; letter-spacing: .06em; }
+  .chip { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 22px;
+          padding: 0 6px; border-radius: 4px; font-weight: 800; font-size: 13px; color: #111; }
+  .chip.no { position: relative; opacity: .85; }
+  .chip.no::after { content: ""; position: absolute; left: -2px; right: -2px; top: 50%; height: 2px;
+                    background: var(--danger); transform: rotate(-18deg); }
+  #call { font-family: var(--display); font-weight: 800; font-size: 20px; color: var(--accent); }
+  footer { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  footer a { color: var(--good); }
+  @media (max-width: 560px) {
+    h1 { font-size: 22px; }
+    .board b { font-size: 21px; }
+    .board div { padding: 5px 8px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="t-title">奥西姆多色传球<small>OSIM PASSING</small></h1>
+    <div class="ctrls">
+      <button id="lv-easy" data-lv="easy" aria-pressed="false">入门</button>
+      <button id="lv-normal" data-lv="normal" aria-pressed="true">标准</button>
+      <button id="lv-osim" data-lv="osim" aria-pressed="false">奥西姆</button>
+      <button id="lang" title="中文 / 日本語">日本語</button>
+      <button id="sound" aria-pressed="true">♪</button>
+    </div>
+  </header>
+
+  <div class="board" aria-live="polite">
+    <div><span id="t-score">得分</span><b id="score">0</b></div>
+    <div><span id="t-combo">连续传球</span><b id="combo">0</b></div>
+    <div><span id="t-lives">机会</span><b id="lives">●●●</b></div>
+    <div><span id="t-best">最高</span><b id="best">0</b></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="pitch"></canvas>
+    <div class="overlay" id="overlay">
+      <div class="card" id="card"></div>
+    </div>
+  </div>
+
+  <div class="rule" id="rulebar"></div>
+
+  <footer id="t-foot"></footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- 文案 ----------
+  const STR = {
+    zh: {
+      title: '奥西姆多色传球', score: '得分', combo: '连续传球', lives: '机会', best: '最高',
+      lv: { easy: '入门', normal: '标准', osim: '奥西姆' }, langBtn: '日本語',
+      colors: { R: '红', B: '蓝', Y: '黄', P: '紫', W: '白' },
+      introH: '多色背心传球训练',
+      intro: [
+        '点击队友传球。球在路上时就可以点下一个人，接球后自动一脚出球。',
+        '不能传给和自己<b>同色</b>的队友。',
+        '标准难度起，也不能传回<b>刚才传给你的那个颜色</b>。',
+        '奥西姆难度里教练会喊颜色，下一脚必须传给那个颜色。',
+        '黑衣防守会抢球和封线路。持球太久、违规、被断都会丢一次机会。'
+      ],
+      start: '开始训练', again: '再来一次',
+      overH: '训练结束', overStat: (s, p, b) => `得分 ${s} · 最长连续 ${p} 脚 · 最高 ${b}`,
+      newBest: '新纪录！',
+      ruleLbl: '持球', noLbl: '不能传给', ruleText: { easy: '异色传球', normal: '异色 + 不回传上一色', osim: '异色 + 不回传上一色 + 听教练喊色' },
+      callLbl: '教练：', callTo: c => `下一脚 → ${c}！`,
+      fault: { same: '同色传球！', back: '传回了上一个颜色！', call: '没听教练的指示！', slow: '持球太久！', cut: '被断球！', tackle: '被抢走了！' },
+      oneTouch: '一脚！', callOk: '指示达成',
+      foot: '规则源自伊维察·奥西姆执教千叶和日本国家队时的多色背心训练：用颜色限制传球对象，逼球员在接球前就看好下一脚。<a href="./">← 小石川运动场空场情况</a>'
+    },
+    ja: {
+      title: 'オシム式 多色パス', score: 'スコア', combo: '連続パス', lives: '残り', best: 'ベスト',
+      lv: { easy: '入門', normal: '標準', osim: 'オシム' }, langBtn: '中文',
+      colors: { R: '赤', B: '青', Y: '黄', P: '紫', W: '白' },
+      introH: '多色ビブスのパス練習',
+      intro: [
+        '味方をタップしてパス。ボールが転がっている間に次の味方を選べば、受けた瞬間にダイレクトで出す。',
+        '<b>自分と同じ色</b>の味方にはパスできない。',
+        '標準からは、<b>直前にパスをくれた色</b>にも返せない。',
+        'オシムではコーチが色をコールする。次のパスはその色へ。',
+        '黒い守備者が寄せてきてコースも切る。持ちすぎ・反則・カットで1つ失う。'
+      ],
+      start: '練習開始', again: 'もう一回',
+      overH: '練習終了', overStat: (s, p, b) => `スコア ${s} · 最長 ${p} 本連続 · ベスト ${b}`,
+      newBest: '自己ベスト！',
+      ruleLbl: '保持', noLbl: 'パス不可', ruleText: { easy: '別の色へ', normal: '別の色 + 直前の色に返さない', osim: '別の色 + 直前の色に返さない + コールに従う' },
+      callLbl: 'コーチ：', callTo: c => `次は ${c}！`,
+      fault: { same: '同じ色にパス！', back: '直前の色に返した！', call: 'コールを聞いてない！', slow: '持ちすぎ！', cut: 'カットされた！', tackle: '奪われた！' },
+      oneTouch: 'ダイレクト！', callOk: 'コール成功',
+      foot: 'イビチャ・オシムが千葉や日本代表で使った多色ビブスの練習がもと。色でパス先を縛り、受ける前に次を見る習慣をつける。<a href="./">← 小石川運動場の空き状況</a>'
+    }
+  };
+
+  const BIBS = [
+    { k: 'R', fill: '#e5484d', edge: '#8f1d22' },
+    { k: 'B', fill: '#3d8bff', edge: '#123d80' },
+    { k: 'Y', fill: '#f5c518', edge: '#8a6b00' },
+    { k: 'P', fill: '#b56cff', edge: '#55248f' },
+    { k: 'W', fill: '#f2f2ee', edge: '#7c7c76' }
+  ];
+
+  const LEVELS = {
+    easy:   { colors: 3, perColor: 3, defenders: 1, touch: 3.2, minTouch: 2.2, backRule: false, calls: false, hints: true,  dfSpeed: 95 },
+    normal: { colors: 4, perColor: 3, defenders: 2, touch: 2.4, minTouch: 1.5, backRule: true,  calls: false, hints: false, dfSpeed: 120 },
+    osim:   { colors: 5, perColor: 3, defenders: 3, touch: 1.9, minTouch: 1.1, backRule: true,  calls: true,  hints: false, dfSpeed: 135 }
+  };
+
+  // ---------- 存储（可能不可用） ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('osim.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem('osim.' + k, JSON.stringify(v)); } catch { /* ignore */ } }
+  };
+
+  let lang = store.get('lang', (navigator.language || '').startsWith('ja') ? 'ja' : 'zh');
+  let level = store.get('level', 'normal');
+  if (!LEVELS[level]) level = 'normal';
+  let soundOn = store.get('sound', true);
+  const T = () => STR[lang];
+
+  // ---------- 画布 ----------
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  const stage = document.getElementById('stage');
+  let W = 1000, H = 620, scale = 1, dpr = 1;
+  const M = 44; // 场地内边距（标志桶位置）
+
+  function resize() {
+    const cssW = stage.clientWidth;
+    const narrow = cssW < 700;
+    const oldW = W, oldH = H;
+    // 手机上缩小逻辑场地，让球员在屏幕上够大、好点
+    W = narrow ? 540 : 1000;
+    H = narrow ? clamp(Math.round(W * (window.innerHeight - 300) / cssW), 560, 760) : 620;
+    scale = cssW / W;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * scale * dpr);
+    cv.height = Math.round(H * scale * dpr);
+    cv.style.height = (H * scale) + 'px';
+    if (state && (oldW !== W || oldH !== H)) {
+      for (const p of [...state.mates, ...state.defs]) {
+        p.x = clamp(p.x / oldW * W, M, W - M); p.y = clamp(p.y / oldH * H, M, H - M);
+        p.tx = p.x; p.ty = p.y;
+      }
+      if (state.ball) { state.ball.x = clamp(state.ball.x / oldW * W, 0, W); state.ball.y = clamp(state.ball.y / oldH * H, 0, H); }
+    }
+  }
+
+  // ---------- 工具 ----------
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  function segDist(p, a, b) {
+    const dx = b.x - a.x, dy = b.y - a.y, L = dx * dx + dy * dy || 1;
+    const t = clamp(((p.x - a.x) * dx + (p.y - a.y) * dy) / L, 0, 1);
+    return { d: Math.hypot(p.x - (a.x + dx * t), p.y - (a.y + dy * t)), t };
+  }
+  const FONT = getComputedStyle(document.body).fontFamily;
+  const R_P = 17, R_BALL = 7, BALL_SPEED = 760;
+
+  // ---------- 声音 ----------
+  let actx = null;
+  function beep(freq, dur, type = 'sine', vol = 0.08) {
+    if (!soundOn) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, actx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
+      o.connect(g).connect(actx.destination);
+      o.start(); o.stop(actx.currentTime + dur);
+    } catch { /* ignore */ }
+  }
+  const sfx = {
+    kick: () => beep(180, 0.08, 'triangle', 0.12),
+    ok: () => beep(660, 0.09, 'sine', 0.06),
+    whistle: () => { beep(2300, 0.18, 'square', 0.04); setTimeout(() => beep(2300, 0.32, 'square', 0.04), 220); },
+    call: () => beep(990, 0.12, 'triangle', 0.06)
+  };
+
+  // ---------- 游戏状态 ----------
+  let state = null;
+
+  function newGame() {
+    const L = LEVELS[level];
+    const mates = [];
+    for (let c = 0; c < L.colors; c++) {
+      for (let i = 0; i < L.perColor; i++) {
+        mates.push({ id: mates.length, c, x: rand(M + 30, W - M - 30), y: rand(M + 30, H - M - 30), tx: 0, ty: 0,
+                     spd: rand(55, 85), vx: 0, vy: 0 });
+      }
+    }
+    mates.forEach(retarget);
+    const defs = [];
+    for (let i = 0; i < L.defenders; i++) {
+      defs.push({ x: rand(M, W - M), y: rand(M, H - M), tx: 0, ty: 0, role: i === 0 ? 'press' : 'lane', vx: 0, vy: 0 });
+    }
+    state = {
+      L, mates, defs, score: 0, combo: 0, bestCombo: 0, lives: 3, passes: 0,
+      holder: null, prevColor: null, holdT: 0, touch: L.touch, call: null, nextCallIn: 4,
+      ball: null, queued: null, freeze: 0, floats: [], over: false, running: true, hover: null, flash: 0
+    };
+    giveBall(mates[Math.floor(Math.random() * mates.length)], true);
+    updateHud();
+  }
+
+  function retarget(p) {
+    p.tx = rand(M + 20, W - M - 20);
+    p.ty = rand(M + 20, H - M - 20);
+  }
+
+  function giveBall(p, fresh, oneTouchNext) {
+    const s = state;
+    s.holder = p;
+    s.ball = { x: p.x, y: p.y, from: null, to: null, moving: false, trail: [] };
+    s.holdT = 0;
+    if (fresh) {
+      s.prevColor = null; s.call = null;
+      // 防守者被推开，给重新开始留空间
+      for (const d of s.defs) {
+        let a = Math.atan2(d.y - p.y, d.x - p.x);
+        if (!isFinite(a)) a = rand(0, Math.PI * 2);
+        d.x = clamp(p.x + Math.cos(a) * 260, M, W - M);
+        d.y = clamp(p.y + Math.sin(a) * 260, M, H - M);
+      }
+    }
+    // 已经预选了一脚出球时不喊色，否则玩家来不及反应
+    if (oneTouchNext) s.call = null; else maybeCall();
+    renderRule();
+  }
+
+  function legalColors() {
+    const s = state;
+    const out = [];
+    for (let c = 0; c < s.L.colors; c++) {
+      if (c === s.holder.c) continue;
+      if (s.L.backRule && c === s.prevColor) continue;
+      out.push(c);
+    }
+    return out;
+  }
+
+  function maybeCall() {
+    const s = state;
+    s.call = null;
+    if (!s.L.calls || s.prevColor == null) return;
+    s.nextCallIn--;
+    if (s.nextCallIn > 0) return;
+    const opts = legalColors();
+    if (!opts.length) return;
+    s.call = opts[Math.floor(Math.random() * opts.length)];
+    s.nextCallIn = 3 + Math.floor(Math.random() * 4);
+    sfx.call();
+  }
+
+  function faultReason(target) {
+    const s = state;
+    if (target.c === s.holder.c) return 'same';
+    if (s.L.backRule && target.c === s.prevColor) return 'back';
+    if (s.call != null && target.c !== s.call) return 'call';
+    return null;
+  }
+
+  function pass(target, oneTouch) {
+    const s = state;
+    const why = faultReason(target);
+    if (why) { fault(why, target); return; }
+    const from = s.holder;
+    s.ball = { x: from.x, y: from.y, from, to: target, moving: true, trail: [], oneTouch: oneTouch || s.holdT < 0.5, wasCall: s.call != null };
+    s.prevColor = from.c;
+    s.holder = null;
+    s.call = null;
+    s.queued = null;
+    target.vx = target.vy = 0;
+    sfx.kick();
+    renderRule();
+  }
+
+  function receive(target) {
+    const s = state, b = s.ball;
+    s.passes++; s.combo++;
+    s.bestCombo = Math.max(s.bestCombo, s.combo);
+    let pts = 10 + Math.floor(s.combo / 5) * 5;
+    let label = '+' + pts;
+    if (b.oneTouch) { pts += 5; label = T().oneTouch + ' +' + pts; }
+    if (b.wasCall) { pts += 10; label = T().callOk + ' +' + pts; }
+    s.score += pts;
+    floatText(target.x, target.y - 30, label, b.oneTouch || b.wasCall ? '#f5c518' : '#ffffff');
+    if (s.passes % 8 === 0) s.touch = Math.max(s.L.minTouch, s.touch * 0.93);
+    sfx.ok();
+    const q = s.queued;
+    s.queued = null;
+    giveBall(target, false, q && q !== target);
+    updateHud();
+    if (q && q !== target) pass(q, true);
+  }
+
+  function fault(why, at) {
+    const s = state;
+    s.lives--;
+    s.combo = 0;
+    s.freeze = 1.4;
+    s.flash = 1;
+    s.queued = null;
+    s.faultMsg = T().fault[why];
+    const p = at || s.holder || s.ball;
+    floatText(p.x, p.y - 34, s.faultMsg, '#ff6b5e', 1.4);
+    sfx.whistle();
+    updateHud();
+    if (s.lives <= 0) s.pendingOver = true;
+  }
+
+  function floatText(x, y, text, color, life = 1) {
+    state.floats.push({ x, y, text, color, t: 0, life });
+  }
+
+  // ---------- 更新 ----------
+  function steer(p, tx, ty, spd, dt) {
+    const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
+    const want = d > 1 ? Math.min(spd, d * 3) : 0;
+    const vx = d > 1 ? dx / d * want : 0, vy = d > 1 ? dy / d * want : 0;
+    const k = Math.min(1, dt * 6);
+    p.vx += (vx - p.vx) * k; p.vy += (vy - p.vy) * k;
+    p.x = clamp(p.x + p.vx * dt, M, W - M);
+    p.y = clamp(p.y + p.vy * dt, M, H - M);
+    return d;
+  }
+
+  function separate(all) {
+    for (let i = 0; i < all.length; i++) {
+      for (let j = i + 1; j < all.length; j++) {
+        const a = all[i], b = all[j];
+        const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01, min = R_P * 2 + 6;
+        if (d < min) {
+          const push = (min - d) / 2, nx = dx / d, ny = dy / d;
+          if (!a.lock) { a.x -= nx * push; a.y -= ny * push; }
+          if (!b.lock) { b.x += nx * push; b.y += ny * push; }
+        }
+      }
+    }
+  }
+
+  function update(dt) {
+    const s = state;
+    if (!s) return;
+    s.flash = Math.max(0, s.flash - dt * 2.5);
+    s.floats = s.floats.filter(f => (f.t += dt) < f.life);
+
+    // 队友跑位
+    for (const p of s.mates) {
+      p.lock = p === s.holder || (s.ball.moving && p === s.ball.to);
+      if (p.lock) { p.vx *= 0.8; p.vy *= 0.8; continue; }
+      if (steer(p, p.tx, p.ty, p.spd, dt) < 12) retarget(p);
+    }
+
+    if (s.freeze > 0) {
+      s.freeze -= dt;
+      for (const d of s.defs) { d.vx *= 0.9; d.vy *= 0.9; }
+      separate([...s.mates, ...s.defs]);
+      if (s.freeze <= 0) {
+        s.freeze = 0;
+        if (s.pendingOver) { gameOver(); return; }
+        const pool = s.mates.filter(m => s.defs.every(d => dist(d, m) > 140));
+        const list = pool.length ? pool : s.mates;
+        giveBall(list[Math.floor(Math.random() * list.length)], true);
+      }
+      return;
+    }
+
+    const L = s.L;
+    // 防守
+    const ballPos = s.ball;
+    s.defs.forEach((d, i) => {
+      let tx, ty, spd = L.dfSpeed;
+      if (s.ball.moving) {
+        // 追向传球路线上的前方点
+        const b = s.ball, to = b.to;
+        const { t } = segDist(d, b, to);
+        const tt = Math.max(t, 0.25);
+        tx = b.x + (to.x - b.x) * tt; ty = b.y + (to.y - b.y) * tt;
+        spd *= 1.15;
+      } else if (d.role === 'press' && s.holder) {
+        tx = s.holder.x; ty = s.holder.y;
+        spd *= 0.9 + Math.min(s.holdT, 2) * 0.25;
+      } else if (s.holder) {
+        // 封堵：盯离持球人第 i 近的合法接球人线路
+        const legal = s.mates.filter(m => m !== s.holder && !faultReason(m))
+          .sort((a, b) => dist(a, s.holder) - dist(b, s.holder));
+        const tgt = legal[(i - 1) % Math.max(1, legal.length)] || s.holder;
+        tx = (s.holder.x * 0.45 + tgt.x * 0.55); ty = (s.holder.y * 0.45 + tgt.y * 0.55);
+      } else { tx = ballPos.x; ty = ballPos.y; }
+      steer(d, tx, ty, spd, dt);
+    });
+
+    separate([...s.mates, ...s.defs]);
+
+    if (s.ball.moving) {
+      const b = s.ball, to = b.to;
+      const dx = to.x - b.x, dy = to.y - b.y, d = Math.hypot(dx, dy);
+      const step = BALL_SPEED * dt;
+      b.trail.push({ x: b.x, y: b.y });
+      if (b.trail.length > 10) b.trail.shift();
+      // 断球检测（分段，防止穿透）
+      const n = Math.max(1, Math.ceil(step / 8));
+      for (let k = 1; k <= n; k++) {
+        const f = Math.min(1, step * k / n / Math.max(d, 0.001));
+        const px = b.x + dx * f, py = b.y + dy * f;
+        for (const df of s.defs) {
+          if (Math.hypot(df.x - px, df.y - py) < R_P + R_BALL - 2) {
+            b.x = px; b.y = py; b.moving = false;
+            fault('cut', df);
+            return;
+          }
+        }
+      }
+      if (d <= step + R_P * 0.6) { b.x = to.x; b.y = to.y; b.moving = false; receive(to); }
+      else { b.x += dx / d * step; b.y += dy / d * step; }
+    } else if (s.holder) {
+      s.holdT += dt;
+      s.ball.x = s.holder.x; s.ball.y = s.holder.y;
+      if (s.holdT > s.touch) { fault('slow', s.holder); return; }
+      for (const df of s.defs) {
+        if (df.role === 'press' && dist(df, s.holder) < R_P * 2 + 4 && s.holdT > 0.35) { fault('tackle', s.holder); return; }
+      }
+    }
+  }
+
+  // ---------- 绘制 ----------
+  function drawPitch() {
+    const stripe = 80;
+    for (let x = 0; x < W; x += stripe) {
+      ctx.fillStyle = (x / stripe) % 2 ? '#22663a' : '#1f5e35';
+      ctx.fillRect(x, 0, stripe, H);
+    }
+    // 照明光晕
+    const g = ctx.createRadialGradient(W / 2, H / 2, 60, W / 2, H / 2, Math.max(W, H) * 0.75);
+    g.addColorStop(0, 'rgba(255,255,230,0.08)'); g.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(244,247,242,0.75)'; ctx.lineWidth = 3;
+    ctx.strokeRect(M - 14, M - 14, W - 2 * M + 28, H - 2 * M + 28);
+    ctx.setLineDash([10, 12]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(244,247,242,0.25)';
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, 70, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    // 标志桶
+    for (const [cx, cy] of [[M - 14, M - 14], [W - M + 14, M - 14], [M - 14, H - M + 14], [W - M + 14, H - M + 14],
+                            [W / 2, M - 14], [W / 2, H - M + 14]]) {
+      ctx.fillStyle = '#ff7a1a';
+      ctx.beginPath(); ctx.moveTo(cx, cy - 11); ctx.lineTo(cx + 8, cy + 7); ctx.lineTo(cx - 8, cy + 7); ctx.closePath(); ctx.fill();
+    }
+  }
+
+  function drawPlayer(p, fill, edge, glyph, glyphColor, alpha = 1) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath(); ctx.ellipse(p.x + 3, p.y + 6, R_P, R_P * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = fill; ctx.strokeStyle = edge; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(p.x, p.y, R_P, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = glyphColor;
+    ctx.font = '700 16px ' + FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(glyph, p.x, p.y + 1);
+    ctx.globalAlpha = 1;
+  }
+
+  function draw() {
+    const s = state;
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+    drawPitch();
+    if (!s) return;
+    const t = T();
+
+    // 悬停预览线
+    if (s.hover && !s.freeze && (s.holder || s.ball.moving)) {
+      const from = s.holder || s.ball.to;
+      if (from && s.hover !== from) {
+        ctx.setLineDash([6, 8]); ctx.lineWidth = 2;
+        ctx.strokeStyle = s.holder ? 'rgba(255,255,255,0.55)' : 'rgba(245,197,24,0.6)';
+        ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(s.hover.x, s.hover.y); ctx.stroke(); ctx.setLineDash([]);
+      }
+    }
+    // 已预选的一脚出球
+    if (s.queued && s.ball.moving) {
+      const from = s.ball.to;
+      ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(245,197,24,0.85)'; ctx.setLineDash([3, 6]);
+      ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(s.queued.x, s.queued.y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(s.queued.x, s.queued.y, R_P + 8, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    // 入门提示：不能接球的队友变暗
+    let illegal = null;
+    if (s.L.hints && s.holder && !s.freeze) illegal = new Set(s.mates.filter(m => m !== s.holder && faultReason(m)));
+
+    for (const p of s.mates) {
+      const bib = BIBS[p.c];
+      drawPlayer(p, bib.fill, bib.edge, t.colors[bib.k], '#111', illegal && illegal.has(p) ? 0.35 : 1);
+      if (s.call != null && p.c === s.call && s.holder) {
+        ctx.strokeStyle = '#f5c518'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(p.x, p.y, R_P + 6 + Math.sin(performance.now() / 120) * 2, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+    for (const d of s.defs) drawPlayer(d, '#141414', '#3b3b3b', '×', '#9a9a9a');
+
+    // 持球人计时圈
+    if (s.holder && !s.freeze) {
+      const h = s.holder, frac = clamp(1 - s.holdT / s.touch, 0, 1);
+      ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath(); ctx.arc(h.x, h.y, R_P + 9, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = frac > 0.5 ? '#ffffff' : frac > 0.25 ? '#f5c518' : '#ff6b5e';
+      ctx.beginPath(); ctx.arc(h.x, h.y, R_P + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); ctx.stroke();
+    }
+
+    // 球
+    const b = s.ball;
+    b.trail.forEach((p, i) => {
+      ctx.fillStyle = `rgba(255,255,255,${(i + 1) / b.trail.length * 0.3})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, R_BALL * (0.4 + i / b.trail.length * 0.5), 0, Math.PI * 2); ctx.fill();
+    });
+    const bx = s.holder ? b.x + 12 : b.x, by = s.holder ? b.y + 12 : b.y;
+    ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#222'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(bx, by, R_BALL, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(bx, by, 2.4, 0, Math.PI * 2); ctx.fill();
+
+    // 飘字
+    for (const f of s.floats) {
+      const a = 1 - f.t / f.life;
+      ctx.globalAlpha = a; ctx.fillStyle = f.color;
+      ctx.font = '800 22px "Barlow Condensed", ' + FONT;
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 4;
+      ctx.strokeText(f.text, f.x, f.y - f.t * 30); ctx.fillText(f.text, f.x, f.y - f.t * 30);
+      ctx.globalAlpha = 1;
+    }
+    // 犯规闪红
+    if (s.flash > 0) { ctx.fillStyle = `rgba(255,60,50,${s.flash * 0.22})`; ctx.fillRect(0, 0, W, H); }
+  }
+
+  // ---------- HUD ----------
+  const $ = id => document.getElementById(id);
+  function updateHud() {
+    const s = state;
+    $('score').textContent = s ? s.score : 0;
+    $('combo').textContent = s ? s.combo : 0;
+    $('lives').textContent = s ? '●'.repeat(Math.max(0, s.lives)) + '○'.repeat(3 - Math.max(0, s.lives)) : '●●●';
+    $('best').textContent = store.get('best.' + level, 0);
+  }
+
+  function chip(c, no) {
+    const b = BIBS[c];
+    return `<span class="chip${no ? ' no' : ''}" style="background:${b.fill}">${T().colors[b.k]}</span>`;
+  }
+
+  function renderRule() {
+    const t = T(), s = state, bar = $('rulebar');
+    if (!s || !s.holder) { bar.innerHTML = `<span class="lbl">${t.ruleText[level]}</span>`; return; }
+    let html = `<span class="lbl">${t.ruleLbl}</span>${chip(s.holder.c)}`;
+    if (s.L.hints) {
+      const no = [s.holder.c];
+      if (s.L.backRule && s.prevColor != null && s.prevColor !== s.holder.c) no.push(s.prevColor);
+      html += `<span class="lbl">${t.noLbl}</span>${no.map(c => chip(c, true)).join('')}`;
+    } else {
+      html += `<span class="lbl">${t.ruleText[level]}</span>`;
+    }
+    if (s.call != null) html += `<span id="call">${t.callLbl}${t.callTo(t.colors[BIBS[s.call].k])}</span>`;
+    bar.innerHTML = html;
+  }
+
+  function showCard(kind) {
+    const t = T(), card = $('card');
+    if (kind === 'intro') {
+      card.innerHTML = `<h2>${t.introH}</h2><ul>${t.intro.map(x => `<li>${x}</li>`).join('')}</ul>
+        <button class="go" id="go">${t.start}</button>`;
+    } else {
+      const s = state, key = 'best.' + level, prev = store.get(key, 0), isBest = s.score > prev;
+      if (isBest) store.set(key, s.score);
+      card.innerHTML = `<h2>${t.overH}${isBest ? ' · ' + t.newBest : ''}</h2>
+        <p class="stat">${t.overStat(s.score, s.bestCombo, Math.max(prev, s.score))}</p>
+        <button class="go" id="go">${t.again}</button>`;
+    }
+    $('overlay').hidden = false;
+    $('go').addEventListener('click', start);
+    $('go').focus();
+  }
+
+  function gameOver() {
+    state.running = false; state.over = true;
+    showCard('over');
+    updateHud();
+  }
+
+  function start() {
+    $('overlay').hidden = true;
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch { /* ignore */ }
+    newGame();
+  }
+
+  // ---------- 输入 ----------
+  function toLogical(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+  }
+  function pick(pt, exclude) {
+    let best = null, bd = 60;
+    for (const m of state.mates) {
+      if (m === exclude) continue;
+      const d = dist(pt, m);
+      if (d < bd) { bd = d; best = m; }
+    }
+    return best;
+  }
+  cv.addEventListener('pointerdown', e => {
+    const s = state;
+    if (!s || !s.running || s.freeze > 0) return;
+    e.preventDefault();
+    const pt = toLogical(e);
+    if (s.holder) {
+      const tgt = pick(pt, s.holder);
+      if (tgt) pass(tgt, false);
+    } else if (s.ball.moving) {
+      const tgt = pick(pt, s.ball.to);
+      if (tgt) s.queued = tgt;
+    }
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!state || e.pointerType !== 'mouse') return;
+    const pt = toLogical(e);
+    state.hover = pick(pt, state.holder || (state.ball && state.ball.to));
+  });
+  cv.addEventListener('pointerleave', () => { if (state) state.hover = null; });
+
+  // ---------- 设置 ----------
+  function applyLang() {
+    const t = T();
+    document.documentElement.lang = lang;
+    document.title = t.title;
+    $('t-title').firstChild.textContent = t.title;
+    $('t-score').textContent = t.score; $('t-combo').textContent = t.combo;
+    $('t-lives').textContent = t.lives; $('t-best').textContent = t.best;
+    for (const k of Object.keys(LEVELS)) $('lv-' + k).textContent = t.lv[k];
+    $('lang').textContent = t.langBtn;
+    $('t-foot').innerHTML = t.foot;
+    renderRule();
+    if (!$('overlay').hidden) showCard(state && state.over ? 'over' : 'intro');
+  }
+  function applyLevel() {
+    for (const k of Object.keys(LEVELS)) $('lv-' + k).setAttribute('aria-pressed', String(k === level));
+  }
+  document.querySelectorAll('[data-lv]').forEach(btn => btn.addEventListener('click', () => {
+    level = btn.dataset.lv; store.set('level', level); applyLevel();
+    state = null; updateHud(); renderRule(); showCard('intro');
+  }));
+  $('lang').addEventListener('click', () => { lang = lang === 'zh' ? 'ja' : 'zh'; store.set('lang', lang); applyLang(); });
+  $('sound').addEventListener('click', () => {
+    soundOn = !soundOn; store.set('sound', soundOn);
+    $('sound').setAttribute('aria-pressed', String(soundOn));
+  });
+  $('sound').setAttribute('aria-pressed', String(soundOn));
+
+  // ---------- 主循环 ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    if (state && state.running) update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  applyLevel();
+  applyLang();
+  updateHud();
+  showCard('intro');
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
