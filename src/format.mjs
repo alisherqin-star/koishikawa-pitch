@@ -580,6 +580,7 @@ ${rows.join('\n')}
       各コマは 2 時間。予約は文京区「施設予約ねっと」から（団体登録が必要）。
       ${facility.guideUrl ? `<a href="${esc(facility.guideUrl)}">施設案内</a> ・ ` : ''}
       <a href="https://www.shisetsu.city.bunkyo.lg.jp/user/Home">予約サイト</a>
+      ・ <a href="osim.html">オシム式トレーニング（ゲーム）</a>
     </p>
     ${note ? `<p style="margin:0">${esc(note)}</p>` : ''}
   </footer>
